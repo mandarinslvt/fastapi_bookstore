@@ -16,7 +16,6 @@ class Book_obj(Base):
     year: Mapped[int] = mapped_column (Integer, nullable = True)
     price: Mapped[int] = mapped_column(Integer, default=500, nullable=False) #price
     image_url: Mapped[str | None] = mapped_column(String, nullable=True) #file
-    # isbn: Mapped[int] = mapped_column (Integer, primary_key=)
 
 class Reader_obj(Base):
     __tablename__ = 'Readers'
@@ -28,6 +27,7 @@ class Reader_obj(Base):
     registration_date: Mapped[datetime] = mapped_column (DateTime, default = datetime.today)
     phone: Mapped[str] = mapped_column (String, nullable = True)
     balance: Mapped[int] = mapped_column(Integer, default=50000, nullable=False)
+    
 class Cart_obj(Base):
     __tablename__ = 'Cart'
     id: Mapped[int] = mapped_column (Integer, primary_key = True)
