@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Главная — Каталог книг{% endblock %}
+
+{% block content %}
+<header class="main-header">
+    <h1 class="centered-title">Добро пожаловать в "New reader"</h1>
+</header>
+
+<main class="catalog-container">
+    <h2 class="section-title">Каталог книг</h2>
+    <div class="books-grid">
+        
+        {% for book in books %}
+        <div class="book-card">
+            
+            {% if book.image_url %}
+            <img src="{{ url_for('static', path=book.image_url) }}" alt="{{ book.title }}">
+            {% endif %}
+            
+            <div class="book-info">
+                <h3 class="book-title">{{ book.title }}</h3>
+                <p class="book-author">Автор: <span>{{ book.author }}</span></p>
+                <p class="book-genre">Жанр: <span>{{ book.genre }}</span></p>
+                <p class="book-price">{{ book.price }} ₽</p>
+            </div>
+            
+            <form action="/cart/add?book_id={{ book.id }}&reader_id=1" method="POST">
+                <button type="submit" class="buy-button">Положить в корзину</button>
+            </form>
+            
+        </div>
+        {% endfor %}
+        
+    </div>
+</main>
+{% endblock %}

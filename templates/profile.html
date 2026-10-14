@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль читателя{% endblock %}
+
+{% block content %}
+<main class="catalog-container" style="max-width: 600px;">
+    <h2 class="section-title">Личные данные</h2>
+    <div class="book-card" style="padding: 30px;">
+        <div class="book-info" style="margin-bottom: 20px;">
+            <h3 class="book-title" style="font-size: 1.8rem; height: auto; margin-bottom: 5px;">
+                {{ user.name }} {{ user.second_name }}
+            </h3>
+            <p style="font-size: 1.1rem;">Статус: <span style="color: #27ae60; font-weight: bold;">Постоянный читатель</span></p>
+        </div>
+        <div class="book-info" style="border-top: 1px solid #eee; padding-top: 20px;">
+            <p><strong>Баланс счета:</strong> <span style="color: #27ae60; font-weight: bold;">{{ user.balance }} ₽</span></p>
+            <p><strong>Возраст:</strong> <span>{{ user.age }} лет</span></p>
+            <p><strong>Email:</strong> <span>{{ user.email }}</span></p>
+            <p><strong>Телефон:</strong> <span>{{ user.phone }}</span></p>
+            <p><strong>Дата регистрации:</strong> <span>{{ user.registration_date }}</span></p>
+        </div>
+        <button class="buy-button" style="background-color: #e74c3c; margin-top: 30px;">Выйти из профиля</button>
+    </div>
+</main>
+{% endblock %}

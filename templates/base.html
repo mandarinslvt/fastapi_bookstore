@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}"New reader" Book store{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='index.css') }}">
+    <link rel="stylesheet" href="https://cloudflare.com">
+</head>
+<body>
+    <div class="header-wrapper">
+        <nav class="navbar">
+            <div class="navbar-container">
+                <a href="/" class="navbar-logo">📚 New Reader</a>
+                <ul class="navbar-menu">
+                    <li><a href="/" class="nav-link">Каталог</a></li>
+                    <li><a href="/cart?reader_id=1" class="nav-link">🛒 Корзина</a></li>
+                    <li><a href="/profile/1" class="nav-link">👤 Профиль</a></li>
+                </ul>
+            </div>
+        </nav>
+    </div>
+
+    {% block content %}
+    {% endblock %}
+
+    <footer class="main-footer">
+        <div class="footer-container">
+            
+            <div class="footer-column">
+                <h4>Покупателям</h4>
+                <ul>
+                    <li><a href="#">Программа лояльности</a></li>
+                    <li><a href="#">Подарочные сертификаты</a></li>
+                    <li><a href="#">Вопросы и ответы</a></li>
+                </ul>
+                <button class="footer-btn">Написать обращение</button>
+                <div class="footer-phone">8 495 525-72-13</div>
+            </div>
+
+            <div class="footer-column">
+                <h4>Интернет-магазин</h4>
+                <ul>
+                    <li><a href="#">Доставка и оплата</a></li>
+                    <li><a href="#">Акции и распродажи</a></li>
+                    <li><a href="#">Правила продажи</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-column">
+                <h4>Знаем, что почитать</h4>
+                <ul>
+                    <li><a href="#">Скоро в продаже</a></li>
+                    <li><a href="#">Эксклюзивные новинки</a></li>
+                    <li><a href="#">Книжные циклы</a></li>
+                </ul>
+            </div>
+
+            <!-- Колонка 4 -->
+            <div class="footer-column">
+                <h4>О компании</h4>
+                <ul>
+                    <li><a href="#">О компании</a></li>
+                    <li><a href="#">Адреса магазинов</a></li>
+                    <li><a href="#">Политика конфиденциальности</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-column qr-column">
+                <div class="qr-box">
+                    <div class="qr-placeholder">QR CODE</div>
+                    <p>Наведите камеру смартфона, чтобы скачать приложение</p>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="footer-bottom">
+            <div class="footer-bottom-container">
+                <p class="copyright">© 2026, New Reader, ООО «PAGE»</p>
+                <div class="social-icons">
+                    <a href="https://vk.ru" class="social-link" title="Мы ВКонтакте">VK </a>
+                    <a href="https://t.me" class="social-link" title="Наш Telegram">TG</a>
+                    <a href="https://www.youtube.com" class="social-link" title="Наш YouTube">YT</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
