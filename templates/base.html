@@ -4,29 +4,86 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}"New reader" Book store{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='index.css') }}">
-    <link rel="stylesheet" href="https://cloudflare.com">
+    <link rel="stylesheet" href="/static/index.css">
 </head>
 <body>
-    <div class="header-wrapper">
-        <nav class="navbar">
-            <div class="navbar-container">
-                <a href="/" class="navbar-logo">📚 New Reader</a>
-                <ul class="navbar-menu">
-                    <li><a href="/" class="nav-link">Каталог</a></li>
-                    <li><a href="/cart?reader_id=1" class="nav-link">🛒 Корзина</a></li>
-                    <li><a href="/profile/1" class="nav-link">👤 Профиль</a></li>
-                </ul>
+
+<div class="header-wrapper">
+    <nav class="navbar">
+        <div class="navbar-container">
+            
+            <!-- Логотип (Лево) -->
+            <a href="/" class="navbar-logo">📚 New Reader</a>
+            
+            <!-- Живой поиск (Центр) -->
+            <div class="search-field-wrapper">
+                <input type="text" id="live-search-input" placeholder="Я ищу..." autocomplete="off">
+                <span style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;">🔍</span>
+                <div id="live-search-results"></div>
             </div>
-        </nav>
-    </div>
+            
+            <div class="navbar-controls">
+                <button id="theme-toggle" class="theme-btn">🌓</button>
+                {% if user %}
+                    <span class="user-greeting">
+                        Привет, <strong>{{ user.name or user.username }}</strong> 
+                        <span style="color: var(--text-muted);">({% if user.role == 'admin' %}Админ{% elif user.role == 'seller' %}Продавец{% else %}Клиент{% endif %})</span>
+                        {% if user.role != 'admin' %}
+                            <span style="color: #27ae60; font-weight: 600;">Баланс: {{ user.balance }} ₽</span>
+                        {% endif %}
+                    </span>
+                    <ul class="navbar-menu">
+                        <li><a href="/" class="nav-link">Каталог</a></li>
+                        {% if user.role == 'client' %}
+                            <li><a href="/favorites" class="nav-link">🖤 Мои книги</a></li>
+                            <li><a href="/cart" class="nav-link">🛍️ Корзина</a></li>
+                            <li><a href="/profile/{{ user.id }}" class="nav-link">👤 Профиль</a></li>
+                        {% elif user.role == 'seller' %}
+                            <li><a href="/seller/dashboard" class="nav-link" style="color: #005bff; font-weight: 700;">🏪 Панель продавца</a></li>
+                        {% elif user.role == 'admin' %}
+                            <li><a href="/admin/dashboard" class="nav-link" style="color: #e74c3c; font-weight: 700;">⚙️ Админка</a></li>
+                        {% endif %}
+                        <li><a href="/logout" class="nav-link logout-link" style="color: #e74c3c;">Выйти</a></li>
+                    </ul>
+                {% else %}
+                    <a href="/login" class="nav-link login-btn" style="font-weight: 700; color: #005bff;">👤 Войти</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+</div>
 
     {% block content %}
     {% endblock %}
 
+    <!-- СКРИПТ ДЛЯ ДИНАМИЧЕСКОГО ПЕРЕКЛЮЧЕНИЯ ТЕМЫ -->
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const themeToggleBtn = document.getElementById("theme-toggle");
+        const currentTheme = localStorage.getItem("theme");
+
+        // При загрузке страницы проверяем сохраненную тему в браузере
+        if (currentTheme === "dark") {
+            document.body.classList.add("dark-mode");
+        }
+
+        if (themeToggleBtn) {
+            themeToggleBtn.addEventListener("click", () => {
+                document.body.classList.toggle("dark-mode");
+                
+                let theme = "light";
+                if (document.body.classList.contains("dark-mode")) {
+                    theme = "dark";
+                }
+                localStorage.setItem("theme", theme);
+            });
+        }
+    });
+    </script>
+
+    <!-- ВАШ КРАСИВЫЙ МИНИМАЛИСТИЧНЫЙ ФУТЕР -->
     <footer class="main-footer">
         <div class="footer-container">
-            
             <div class="footer-column">
                 <h4>Покупателям</h4>
                 <ul>
@@ -35,14 +92,15 @@
                     <li><a href="#">Вопросы и ответы</a></li>
                 </ul>
                 <button class="footer-btn">Написать обращение</button>
-                <div class="footer-phone">8 495 525-72-13</div>
+                <div class="footer-phone">8 400 525-90-90</div>
             </div>
 
             <div class="footer-column">
                 <h4>Интернет-магазин</h4>
                 <ul>
                     <li><a href="#">Доставка и оплата</a></li>
-                    <li><a href="#">Акции и распродажи</a></li>
+                    <li><a href="#">Акции</a></li>
+                    <li><a href="#">Распродажа</a></li>
                     <li><a href="#">Правила продажи</a></li>
                 </ul>
             </div>
@@ -52,11 +110,11 @@
                 <ul>
                     <li><a href="#">Скоро в продаже</a></li>
                     <li><a href="#">Эксклюзивные новинки</a></li>
-                    <li><a href="#">Книжные циклы</a></li>
+                    <li><a href="#">Лучшие из лучших</a></li>
+                    <li><a href="#">Читальный зал</a></li>
                 </ul>
             </div>
 
-            <!-- Колонка 4 -->
             <div class="footer-column">
                 <h4>О компании</h4>
                 <ul>
@@ -69,19 +127,18 @@
             <div class="footer-column qr-column">
                 <div class="qr-box">
                     <div class="qr-placeholder">QR CODE</div>
-                    <p>Наведите камеру смартфона, чтобы скачать приложение</p>
+                    <p>Наведите камеру смартфона: внутри ссылка на приложение</p>
                 </div>
             </div>
-
         </div>
 
         <div class="footer-bottom">
             <div class="footer-bottom-container">
                 <p class="copyright">© 2026, New Reader, ООО «PAGE»</p>
                 <div class="social-icons">
-                    <a href="https://vk.ru" class="social-link" title="Мы ВКонтакте">VK </a>
-                    <a href="https://t.me" class="social-link" title="Наш Telegram">TG</a>
-                    <a href="https://www.youtube.com" class="social-link" title="Наш YouTube">YT</a>
+                    <a href="#" class="social-link">VK</a>
+                    <a href="#" class="social-link">TG</a>
+                    <a href="#" class="social-link">YT</a>
                 </div>
             </div>
         </div>

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Админка системы — New Reader{% endblock %}
+
+{% block content %}
+<main class="catalog-container">
+    <h2 class="section-title" style="color: var(--text-primary); text-transform: none; font-size: 1.6rem; margin-bottom: 30px; font-weight: 700;">⚙️ Панель Главного Администратора</h2>
+
+    <div style="display: flex; flex-direction: column; gap: 40px;">
+        
+        <!-- ТАБЛИЦА 1: ПОЛЬЗОВАТЕЛИ СИСТЕМЫ -->
+        <div class="book-card" style="background-color: var(--bg-card-cart); border: 1px solid var(--border-color); border-radius: 16px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.02);">
+            <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 1.2rem; font-weight: 700;">👥 Зарегистрированные аккаунты</h3>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted);">
+                            <th style="padding: 12px 10px;">ID</th>
+                            <th style="padding: 12px 10px;">Логин</th>
+                            <th style="padding: 12px 10px;">Роль</th>
+                            <th style="padding: 12px 10px;">ФИО / Название фирмы</th>
+                            <th style="padding: 12px 10px;">Email</th>
+                            <th style="padding: 12px 10px;">Баланс</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-primary);">
+                            <td style="padding: 12px 10px;">{{ u.id }}</td>
+                            <td style="padding: 12px 10px;"><strong>{{ u.username }}</strong></td>
+                            <td style="padding: 12px 10px;">
+                                <span style="padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; color: white;
+                                    {% if u.role == 'admin' %} background-color: #e74c3c;
+                                    {% elif u.role == 'seller' %} background-color: #005bff;
+                                    {% else %} background-color: #27ae60; {% endif %}">
+                                    {{ u.role.upper() }}
+                                </span>
+                            </td>
+                            <td style="padding: 12px 10px;">{{ u.name or '' }} {{ u.second_name or '' }} {{ u.company_name or '' }}</td>
+                            <td style="padding: 12px 10px;">{{ u.email }}</td>
+                            <td style="padding: 12px 10px; font-weight: 700; color: #27ae60;">{{ u.balance }} ₽</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ТАБЛИЦА 2: МОНИТОРИНГ ВСЕХ ТОВАРОВ -->
+        <div class="book-card" style="background-color: var(--bg-card-cart); border: 1px solid var(--border-color); border-radius: 16px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.02);">
+            <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 1.2rem; font-weight: 700;">📦 Глобальный реестр товаров</h3>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted);">
+                            <th style="padding: 12px 10px;">ID</th>
+                            <th style="padding: 12px 10px;">Название товара</th>
+                            <th style="padding: 12px 10px;">Категория</th>
+                            <th style="padding: 12px 10px;">Цена</th>
+                            <th style="padding: 12px 10px;">Остаток</th>
+                            <th style="padding: 12px 10px;">Владелец (Продавец)</th>
+                            <th style="padding: 12px 10px;">Статус витрины</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in products %}
+                        <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-primary);">
+                            <td style="padding: 12px 10px;">{{ p.id }}</td>
+                            <td style="padding: 12px 10px;"><strong>{{ p.title }}</strong><br><small style="color: var(--text-muted);">{{ p.author }}</small></td>
+                            <td style="padding: 12px 10px; text-transform: capitalize;">{{ p.product_type }}</td>
+                            <td style="padding: 12px 10px; font-weight: 600;">{{ p.price }} ₽</td>
+                            <td style="padding: 12px 10px; font-weight: 600; color: {% if p.stock_quantity > 0 %}#27ae60{% else %}#e74c3c{% endif %};">
+                                {{ p.stock_quantity }} шт.
+                            </td>
+                            <td style="padding: 12px 10px;">{{ p.seller.company_name or p.seller.username }}</td>
+                            <td style="padding: 12px 10px;">
+                                {% if not p.is_active %}
+                                    <span style="color: #7f8c8d; font-weight: 600;">❌ Скрыт (Архив)</span>
+                                {% else %}
+                                    {% if p.stock_quantity > 0 %}
+                                        <span style="color: #27ae60; font-weight: 600;">● Доступен</span>
+                                    {% else %}
+                                        <span style="color: #e67e22; font-weight: 600;">⚠️ Нет на складе</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ТАБЛИЦА 3: ИСТОРИЯ ПРОДАЖ (ГЛОБАЛЬНЫЙ ТРАНЗАКЦИОННЫЙ ЛОГ) -->
+        <div class="book-card" style="background-color: var(--bg-card-cart); border: 1px solid var(--border-color); border-radius: 16px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.02);">
+            <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 1.2rem; font-weight: 700;">📊 Лог покупок (Движение средств)</h3>
+            <div style="overflow-x: auto;">
+                {% if purchase %}
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted);">
+                            <th style="padding: 12px 10px;">ID Ордера</th>
+                            <th style="padding: 12px 10px;">Купленный товар</th>
+                            <th style="padding: 12px 10px;">Кто купил (Клиент)</th>
+                            <th style="padding: 12px 10px;">Кому ушли деньги (Продавец)</th>
+                            <th style="padding: 12px 10px;">Сумма сделки</th>
+                            <th style="padding: 12px 10px;">Дата оплаты</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for buy in purchase %}
+                        <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-primary);">
+                            <td style="padding: 12px 10px;">#{{ buy.id }}</td>
+                            <td style="padding: 12px 10px;"><strong>{{ buy.product.title }}</strong></td>
+                            <td style="padding: 12px 10px;">{{ buy.reader.username }}</td>
+                            <td style="padding: 12px 10px;">{{ buy.seller.company_name or buy.seller.username }}</td>
+                            <td style="padding: 12px 10px; font-weight: 700; color: #005bff;">{{ buy.total_price }} ₽</td>
+                            <td style="padding: 12px 10px; color: var(--text-muted);">{{ buy.purchase_date.strftime('%d.%m.%Y %H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                    <p style="color: var(--text-muted); margin-top: 10px;">Транзакции на платформе ещё не проводились.</p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</main>
+{% endblock %}

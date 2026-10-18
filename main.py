@@ -1,37 +1,19 @@
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.orm import Session
-from models import Base, Book_obj, Reader_obj, Cart_obj, Promo_obj, Reg_obj, Buy_obj
-from fastapi import FastAPI, Request, Form, Depends, HTTPException 
+from models import Base, Product_obj, User_obj, Cart_obj, Promo_obj, Buy_obj, Favorite_obj
+from fastapi import FastAPI, Request, Form, Depends, HTTPException, Cookie, Response, status
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
-from fastapi import status
+from fastapi.responses import RedirectResponse, JSONResponse
 from database import engine, SessionLocal
 from datetime import datetime
-from pydantic import BaseModel
 
 app = FastAPI()
 Base.metadata.create_all(bind=engine)
+
+# Подключение статики и шаблонов
 app.mount("/static", StaticFiles(directory="styles"), name="static")
-templates = Jinja2Templates (directory = "templates")
-
-class PromoCheck(BaseModel):
-    code_input: str
-    cart_total: int
-
-class UserCreate(BaseModel):
-    email: str
-    password: str
-
-class CardChoice(BaseModel):
-    cvc: str
-    name: str
-    date: str
-
-class PurchaseFunc(BaseModel):
-    reader_id: int
-    card_number: str | None = None # заполнить или оставить пустой
-
+templates = Jinja2Templates(directory="templates")
 
 def get_db():
     db = SessionLocal()
@@ -40,214 +22,393 @@ def get_db():
     finally:
         db.close()
 
+def get_current_user(cookie_user_id: str | None = Cookie(None, alias="user_id"), db: Session = Depends(get_db)):
+    if not cookie_user_id:
+        return None
+    return db.get(User_obj, int(cookie_user_id))
+
+# - - -
+
 @app.get('/')
-def read_root(request: Request, db: Session = Depends(get_db)):
-    # вытаскиваем все книги из базы данных
-    query = select(Book_obj)
-    books = db.execute(query).scalars().all()
-
-    return templates.TemplateResponse(
-        request=request, 
-        name='index.html', 
-        context={'books': books}
-    )
-
-@app.get('/books_obj')
-def books_root(db: Session = Depends(get_db)):
-    query = select(Book_obj)
-    books = db.execute(query).scalars().all()
-    return {'Book-list': books}
-
-@app.get('/readers_obj')
-def readers_root(db: Session = Depends(get_db)):
-    query = select(Reader_obj)
-    readers = db.execute(query).scalars().all()
-    return{'Readers-list': readers}
-
-@app.get('/book/{book_id}')
-async def book_model(book_id: int, db: Session = Depends(get_db)):
-    book = db.get(Book_obj, book_id)
-    if not book:
-        raise HTTPException(status_code=404, detail='Книга не найдена в магазине')
-    return{'Book_models': book}
-
-@app.get('/reader/{reader_id}')
-async def reader_model(reader_id: int, db: Session = Depends(get_db)):
-    reader = db.get(Reader_obj, reader_id)
-    if not reader:
-        raise HTTPException(status_code=404, detail='User not found')
-    return{'Reader_models': reader}
-
-@app.get('/profile/{reader_id}')
-async def get_profile(reader_id: int, request: Request, db: Session = Depends(get_db)):
-    user = db.get(Reader_obj, reader_id)
-    if not user:
-        raise HTTPException(status_code=404, detail='User not found!')
-
-    return templates.TemplateResponse(
-        request = request,
-        name = 'profile.html',
-        context = {'user': user}
-    )
-
-@app.get('/cart')
-def get_cart(request: Request, reader_id: int, db: Session = Depends(get_db)):
-    query = select(Cart_obj).where(Cart_obj.reader_id == reader_id)
-    cart_items = db.execute(query).scalars().all()
+def read_root(
+    request: Request, 
+    search: str | None = None, 
+    product_type: str | None = None,
+    genre: str | None = None,
+    db: Session = Depends(get_db),
+    current_user: User_obj = Depends(get_current_user)
+):
+    # Показываем только активные товары (не удаленные)
+    query = select(Product_obj).where(Product_obj.is_active == True)
     
-    total_price = 0
-    for item in cart_items:
-        total_price += item.book.price * item.quantity
-
-    reader = db.get(Reader_obj, reader_id)
-    return templates.TemplateResponse(
-        request=request, 
-        name='cart.html', 
-        context={
-            'cart_items': cart_items,
-            'total_price': total_price,
-            'reader': reader,
-        }
-    )
-
-@app.post('/cart/add')
-async def add_cart(book_id: int, reader_id: int, db: Session = Depends(get_db)):
-    search_book = db.get(Book_obj, book_id)
-    if not search_book:
-        raise HTTPException(status_code=404, detail='Book not found!')
-    
-    search_reader = db.get(Reader_obj, reader_id)
-    if not search_reader:
-        raise HTTPException(status_code=404, detail='User not found!')
+    if search:
+        query = query.where(
+            or_(
+                Product_obj.title.ilike(f"%{search}%"),
+                Product_obj.author.ilike(f"%{search}%"),
+                Product_obj.genre.ilike(f"%{search}%")
+            )
+        )
+    if product_type:
+        query = query.where(Product_obj.product_type == product_type)
+    if genre:
+        query = query.where(Product_obj.genre == genre)
         
-    new_item = Cart_obj(book_id=book_id, reader_id=reader_id, quantity=1)
-    db.add(new_item)
-    db.commit()
-    
-    return RedirectResponse(
-        url=f"/cart?reader_id={reader_id}", 
-        status_code=status.HTTP_303_SEE_OTHER
+    books = db.execute(query).scalars().all()
+
+    return templates.TemplateResponse(
+        request=request, 
+        name='index.html',
+        context={'books': books, 'user': current_user, 'search': search, 'product_type': product_type, 'genre': genre}
     )
 
-@app.post('/cart/promo')
-async def input_promo(
-    code_input: str = Form(...),
-    cart_total: int = Form(...),
+from fastapi.responses import Response
+
+@app.get('/favicon.ico', include_in_schema=False)
+async def favicon():
+    # Возвращаем пустой ответ с правильным статус-кодом, чтобы браузер отстал
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+# API для динамического (живого) поиска через JS fetch()
+@app.get('/api/search')
+async def api_search(search: str | None = None, db: Session = Depends(get_db)):
+    query = select(Product_obj).where(Product_obj.is_active == True)
+    if search:
+        query = query.where(
+            or_(
+                Product_obj.title.ilike(f"%{search}%"),
+                Product_obj.author.ilike(f"%{search}%")
+            )
+        )
+    products = db.execute(query).scalars().all()
+    return [{
+        "id": p.id,
+        "title": p.title,
+        "author": p.author,
+        "price": p.price,
+        "image_url": p.image_url,
+        "stock_quantity": p.stock_quantity
+    } for p in products]
+
+
+# - - -
+
+@app.post('/register')
+async def register_user(
+    username: str = Form(...), password: str = Form(...),
+    name: str = Form(...), second_name: str = Form(...),
+    email: str = Form(...), role: str = Form('client'),
     db: Session = Depends(get_db)
 ):
-    code_upper = code_input.upper()
-    
-    query = select(Promo_obj).where(Promo_obj.code == code_upper)
-    promo = db.execute(query).scalars().first()
-    
-    if not promo:
-        raise HTTPException(status_code=404, detail='Промокод не найден')
-
-    if not promo.active:
-        raise HTTPException(status_code=400, detail='Промокод недействителен')
-    
-    if datetime.now() > promo.expires_at:
-        raise HTTPException(status_code=400, detail='Срок действия промокода истек')
-    
-    discount = promo.discount_amount
-    
-    if discount > cart_total:
-        discount = cart_total
+    existing_user = db.execute(select(User_obj).where(User_obj.username == username)).scalars().first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail='Пользователь с таким логином уже существует')
         
-    new_total = cart_total - discount
-    
-    return {
-        "status": "success",
-        "code": code_upper,
-        "discount": discount,
-        "new_total": cart_total - discount
-    }
-
-@app.post('/registr/user')
-def reg_user(user: UserCreate, db: Session = Depends(get_db)):
-    query = select(Reg_obj).where(Reg_obj.email == user.email)
-    getting_user = db.execute(query).scalars().first()
-
-    if getting_user:
-        raise HTTPException(status_code=400, detail='Такой пользователь уже существует.')
-    
-    new_user = Reg_obj(
-        email=user.email,
-        user_password=user.password,
-        hash_password=user.password + 'hash'
+    new_user = User_obj(
+        username=username, password=password, role=role,
+        name=name, email=email, second_name=second_name
     )
     db.add(new_user)
     db.commit()
-    return {'status': 'succes', 'message': 'Ready!'}
 
-@app.post('/cart/delete/{item_id}')
-async def delete_cart_item(item_id: int, db: Session = Depends(get_db)):
-    cart_item = db.get(Cart_obj, item_id)
-    
-    if not cart_item:
-        raise HTTPException(status_code=404, detail="Элемент корзины не найден")
-    
-    #запоминаем reader_id, чтобы после удаления вернуть пользователя именно в его корзину
-    reader_id = cart_item.reader_id
-    
-    #удаляем элемент из базы данных и сохраняем изменения
-    db.delete(cart_item)
-    db.commit()
-    
-    #перенаправляем пользователя обратно в корзину
-    return RedirectResponse(
-        url=f"/cart?reader_id={reader_id}", 
-        status_code=status.HTTP_303_SEE_OTHER
+    response = RedirectResponse(url='/', status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key='user_id', value=str(new_user.id), httponly=True)
+    return response
+
+# - - -
+
+@app.get('/login')
+async def login_page(
+    request: Request, 
+    current_user: User_obj = Depends(get_current_user)
+    ):
+    # Если пользователь уже авторизован, отправляем его на главную
+    if current_user:
+        return RedirectResponse(url='/', status_code=status.HTTP_303_SEE_OTHER)
+        
+    # Иначе открываем созданную страницу login.html
+    return templates.TemplateResponse(
+        request=request, 
+        name='login.html', 
+        context={'user': current_user}
     )
 
-@app.post('/purchase')
-async def buy_func(
-    reader_id: int = Form(...), 
+
+# - - -
+@app.post('/login')
+async def login_user(
+    request: Request,
+    username_input: str = Form(...),       
+    password_input: str = Form(...),        
     db: Session = Depends(get_db)
 ):
-    reader = db.get(Reader_obj, reader_id)
-    if not reader:
-        raise HTTPException(status_code=404, detail='Пользователь не найден!')
+    # Ищем пользователя в базе данных
+    query = select(User_obj).where(User_obj.username == username_input)
+    user = db.execute(query).scalars().first()
+    
+    if not user or user.password != password_input:
+        return templates.TemplateResponse(
+            request=request, 
+            name='login.html', 
+            context={
+                'user': None, 
+                'error': "Неверный логин или пароль", 
+                'entered_username': username_input
+            }
+        )
+    
+    res = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+    res.set_cookie(key="user_id", value=str(user.id), httponly=True)
+    return res
+
+@app.get('/logout')
+async def logout_user():
+    response = RedirectResponse(url='/', status_code=status.HTTP_303_SEE_OTHER)
+    response.delete_cookie(key='user_id')
+    return response
+
+
+# --- ПРОФИЛЬ И ДЕТАЛИ ---
+
+@app.get('/profile/{user_id}')
+async def get_profile(user_id: int, request: Request, current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user or current_user.id != user_id:
+        return RedirectResponse(url='/')
+
+    # Загружаем историю покупок
+    history_query = select(Buy_obj).where(Buy_obj.reader_id == user_id)
+    purchases = db.execute(history_query).scalars().all()
+
+    return templates.TemplateResponse(
+        request=request,
+        name='profile.html',
+        context={'user': current_user, 'purchases': purchases}
+    )
+
+@app.get('/book/{book_id}/read')
+async def read_book_preview(book_id: int, request: Request, current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
+    book = db.get(Product_obj, book_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Книга не найдена в магазине")
         
-    # берём реальный баланс из базы данных читателя
-    amount_balance = reader.balance 
+    return templates.TemplateResponse(
+        request=request, 
+        name='read.html', 
+        context={'book': book, 'user': current_user}
+    )
 
-    query = select(Cart_obj).where(Cart_obj.reader_id == reader_id)
+
+# --- КОРЗИНА И ИЗБРАННОЕ (ДИНАМИЧЕСКИЕ ЧЕРЕЗ JSON/AJAX) ---
+
+@app.get('/favorites')
+async def get_favorites_page(
+    request: Request, 
+    current_user: User_obj = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+        
+    # Загружаем связи избранного для текущего пользователя
+    query = select(Favorite_obj).where(Favorite_obj.user_id == current_user.id)
+    fav_items = db.execute(query).scalars().all()
+    
+    # Достаем из связей объекты самих продуктов (книг, закладок)
+    books = [item.product for item in fav_items if item.product is not None]
+
+    return templates.TemplateResponse(
+        request=request, 
+        name='favorites.html', 
+        context={'books': books, 'user': current_user}
+    )
+
+@app.get('/cart')
+def get_cart(request: Request, current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user:
+        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+        
+    query = select(Cart_obj).where(Cart_obj.reader_id == current_user.id)
     cart_items = db.execute(query).scalars().all()
+    
+    total_price = sum(item.book.price * item.quantity for item in cart_items)
 
-    # проверка на пустую корзину
+    return templates.TemplateResponse(
+        request=request, 
+        name='cart.html', 
+        context={'cart_items': cart_items, 'total_price': total_price, 'user': current_user}
+    )
+
+@app.post('/cart/add')
+async def add_cart(book_id: int, current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user:
+        return JSONResponse(status_code=401, content={'status': 'error', 'message': 'Пожалуйста, войдите в аккаунт!'})
+
+    book = db.get(Product_obj, book_id)
+    if not book or not book.is_active or book.stock_quantity <= 0:
+        return JSONResponse(status_code=400, content={'status': 'error', 'message': 'Товара нет в наличии!'})
+    
+    # Проверяем, есть ли уже товар в корзине
+    existing = db.execute(select(Cart_obj).where(Cart_obj.reader_id == current_user.id, Cart_obj.book_id == book_id)).scalars().first()
+    if existing:
+        existing.quantity += 1
+    else:
+        new_item = Cart_obj(book_id=book_id, reader_id=current_user.id, quantity=1)
+        db.add(new_item)
+        
+    db.commit()
+    return {'status': 'success', 'message': 'Товар добавлен в корзину!'}
+
+@app.post('/cart/delete/{item_id}')
+async def delete_cart_item(item_id: int, current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user:
+         raise HTTPException(status_code=401)
+    cart_item = db.get(Cart_obj, item_id)
+    if cart_item and cart_item.reader_id == current_user.id:
+        db.delete(cart_item)
+        db.commit()
+    return RedirectResponse(url='/cart', status_code=status.HTTP_303_SEE_OTHER)
+
+# Избранное (Добавить/Удалить динамически)
+@app.post('/favorite/toggle/{product_id}')
+async def toggle_favorite(product_id: int, current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user:
+        return JSONResponse(status_code=401, content={'status': 'error', 'message': 'Необходима авторизация'})
+        
+    query = select(Favorite_obj).where(Favorite_obj.user_id == current_user.id, Favorite_obj.product_id == product_id)
+    fav = db.execute(query).scalars().first()
+    
+    if fav:
+        db.delete(fav)
+        db.commit()
+        return {"status": "removed", "message": "Удалено из избранного"}
+    else:
+        new_fav = Favorite_obj(user_id=current_user.id, product_id=product_id)
+        db.add(new_fav)
+        db.commit()
+        return {"status": "added", "message": "Добавлено в избранное"}
+
+
+# --- ОФОРМЛЕНИЕ ЗАКАЗА (ПОКУПКА) ---
+
+# --- ОФОРМЛЕНИЕ ЗАКАЗА (ПОКУПКА) ---
+
+@app.post('/purchase')
+async def buy_func(current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Войдите в аккаунт")
+
+    cart_items = db.execute(select(Cart_obj).where(Cart_obj.reader_id == current_user.id)).scalars().all()
     if not cart_items:
         raise HTTPException(status_code=400, detail='Ваша корзина пуста!')
     
-    total_price = 0
-    for item in cart_items:
-        total_price += item.book.price * item.quantity
+    total_price = sum(item.book.price * item.quantity for item in cart_items)
 
-    # проверка нехватки средств. В базе данных по умолчанию присутствует сумма
-    if amount_balance < total_price:
-        raise HTTPException(
-            status_code=400, 
-            detail=f'Недостаточно средств! К оплате: {total_price} ₽, ваш баланс: {amount_balance} ₽'
+    if current_user.balance < total_price:
+        raise HTTPException(status_code=400, detail=f'Недостаточно средств!')
+
+    # Списываем баланс покупателя
+    current_user.balance -= total_price 
+
+    # Обрабатываем КАЖДЫЙ товар в корзине отдельно
+    for item in cart_items:
+        product = item.book
+        
+        # Проверка остатка на складе
+        if product.stock_quantity < item.quantity:
+            raise HTTPException(status_code=400, detail=f"Товара '{product.title}' нет в нужном количестве!")
+            
+        # Уменьшаем количество на складе
+        product.stock_quantity -= item.quantity
+        
+        # Начисляем деньги продавцу
+        if product.seller_id:
+            seller = db.get(User_obj, product.seller_id)
+            if seller:
+                seller.balance += product.price * item.quantity
+                
+        # Создаем запись о покупке (сохраняются ВСЕ товары внутри цикла)
+        new_purchase = Buy_obj(
+            total_price=product.price * item.quantity,
+            reader_id=current_user.id,
+            book_id=item.book_id,
+            seller_id=product.seller_id or 1
         )
+        db.add(new_purchase)
+        db.delete(item)  # Удаляем элемент из корзины
 
-    reader.balance -= total_price 
-
-    new_purchase = Buy_obj(
-        total_price = total_price,
-        reader_id = reader_id
-    )
-    db.add(new_purchase)
-
-    for item in cart_items:
-        db.delete(item)
-
+    # Фиксируем изменения в БД один раз после успешной обработки всего цикла
     db.commit()
-    
-    return {
-        "status": "success",
-        "redirect": "/purchase/success"
-    }
+
+    # Симуляция уведомлений
+    print(f"🔊 СИСТЕМА УВЕДОМЛЕНИЙ:\n"
+          f"-> АДМИНУ: Совершена продажа на сумму {total_price} ₽\n"
+          f"-> КЛИЕНТУ ({current_user.email}): Заказ оплачен. Списано {total_price} ₽\n"
+          f"-> ПРОДАВЦАМ: Получена оплата за товары.")
+          
+    return {"status": "success", "redirect": "/purchase/success"}
+
 
 @app.get('/purchase/success')
-def cat_success(request: Request):
-    return templates.TemplateResponse(request=request, name='success.html')
+def cat_success(request: Request, current_user: User_obj = Depends(get_current_user)):
+    return templates.TemplateResponse(request=request, name='success.html', context={'user': current_user})
+
+# --- ЛИЧНЫЙ КАБИНЕТ ПРОДАВЦА ---
+
+@app.get('/seller/dashboard')
+async def seller_dashboard(request: Request, current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user or current_user.role != 'seller':
+        return RedirectResponse(url='/')
+    
+    query = select(Product_obj).where(Product_obj.seller_id == current_user.id)
+    sell_products = db.execute(query).scalars().all()
+    return templates.TemplateResponse(
+        request=request, name='seller.html', context={'product': sell_products, 'user': current_user}
+    )
+
+@app.post('/seller/book/add')
+async def seller_product_add(
+    title: str = Form(...), author: str = Form(...),
+    product_type: str = Form(...), genre: str | None = Form(None),
+    price: int = Form(...), stock_quantity: int = Form(...),
+    preview_text: str = Form(...), image_url: str | None = Form(None),
+    current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    if not current_user or current_user.role != 'seller':
+        raise HTTPException(status_code=403)
+    new_product = Product_obj(
+        title=title, author=author, product_type=product_type, genre=genre,
+        price=price, stock_quantity=stock_quantity, preview_text=preview_text,
+        image_url=image_url, seller_id=current_user.id
+    )
+    db.add(new_product)
+    db.commit()
+    
+    return RedirectResponse(url="/seller/dashboard", status_code=status.HTTP_303_SEE_OTHER)
+
+@app.post('/seller/book/delete/{book_id}')
+async def seller_product_delete(book_id: int, current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user or current_user.role != 'seller':
+        raise HTTPException(status_code=403)
+    product = db.get(Product_obj, book_id)
+    if product and product.seller_id == current_user.id:
+        product.is_active = False  # МЯГКОЕ УДАЛЕНИЕ (Архивация)
+        
+    db.commit()
+    
+    return RedirectResponse(url="/seller/dashboard", status_code=status.HTTP_303_SEE_OTHER)
+
+# --- ПАНЕЛЬ АДМИНИСТРАТОРА ---
+
+@app.get('/admin/dashboard')
+async def admin_dashboard(request: Request, current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user or current_user.role != 'admin':
+        return RedirectResponse(url='/')
+    
+    users = db.execute(select(User_obj)).scalars().all()
+    products = db.execute(select(Product_obj)).scalars().all() # Админ видит всё, включая удаленные
+    purchases = db.execute(select(Buy_obj)).scalars().all()
+    
+    return templates.TemplateResponse(
+        request=request, name='admin.html',
+        context={'users': users, 'products': products, 'purchase': purchases, 'user': current_user}
+    )

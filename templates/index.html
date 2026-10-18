@@ -1,37 +1,190 @@
 {% extends "base.html" %}
 
-{% block title %}Главная — Каталог книг{% endblock %}
+{% block title %}Главная — Каталог товаров{% endblock %}
 
 {% block content %}
-<header class="main-header">
-    <h1 class="centered-title">Добро пожаловать в "New reader"</h1>
-</header>
-
 <main class="catalog-container">
-    <h2 class="section-title">Каталог книг</h2>
-    <div class="books-grid">
+    
+    <div id="toast-notification" style="position: fixed; top: 20px; right: 20px; z-index: 9999; padding: 15px 25px; border-radius: 8px; color: #ffffff; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; transition: all 0.3s ease;">
+        <span id="toast-text">Уведомление</span>
+    </div>
+
+    <div class="category-filters" style="margin-bottom: 25px; display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="/" class="filter-btn {% if not product_type %}active{% endif %}" style="padding: 8px 16px; border-radius: 20px; text-decoration: none; border: 1px solid #ccc;">Все товары</a>
+        <a href="/?product_type={{ 'книга' | urlencode }}" class="filter-btn {% if product_type == 'книга' %}active{% endif %}" style="padding: 8px 16px; border-radius: 20px; text-decoration: none; border: 1px solid #ccc;">Книги</a>
+        <a href="/?product_type={{ 'закладки' | urlencode }}" class="filter-btn {% if product_type == 'закладки' %}active{% endif %}" style="padding: 8px 16px; border-radius: 20px; text-decoration: none; border: 1px solid #ccc;">Закладки</a>
+        <a href="/?product_type={{ 'аксессуары' | urlencode }}" class="filter-btn {% if product_type == 'аксессуары' %}active{% endif %}" style="padding: 8px 16px; border-radius: 20px; text-decoration: none; border: 1px solid #ccc;">Аксессуары</a>
+        <a href="/?product_type={{ 'письменные принадлежности' | urlencode }}" class="filter-btn {% if product_type == 'письменные принадлежности' %}active{% endif %}" style="padding: 8px 16px; border-radius: 20px; text-decoration: none; border: 1px solid #ccc;">Письмо</a>
+    </div>
+
+    <!-- ЖИВОЙ ПОИСК С ВЫПАДАЮЩИМ СПИСКОМ -->
+    <div class="search-container" style="margin-bottom: 40px; max-width: 500px; position: relative;">
+        <form action="/" method="GET" style="display: flex; gap: 10px;">
+            <input type="text" id="live-search-input" name="search" placeholder="Поиск по названию или автору..." value="{{ search or '' }}" style="flex-grow: 1; padding: 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.95rem;" autocomplete="off">
+            <button type="submit" class="buy-button" style="margin-top: 0; width: auto; padding: 0 24px; background-color: #aae5f7;">Найти</button>
+        </form>
         
+        <!-- Сюда JS будет выводить мгновенные результаты -->
+        <div id="live-search-results" style="position: absolute; width: 100%; background: var(--bg-header, white); border: 1px solid #ccc; border-radius: 6px; z-index: 100; max-height: 300px; overflow-y: auto; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.15); margin-top: 5px;"></div>
+
+        {% if search or product_type or genre %}
+            <p style="font-size: 0.9rem; color: #8c8c8c; margin-top: 10px;">
+                Фильтр активен | <a href="/" style="color: #005bff; text-decoration: none;">Сбросить всё</a>
+            </p>
+        {% endif %}
+    </div>
+
+    <h2 class="section-title">
+        {% if product_type %}{{ product_type.capitalize() }}{% else %}Каталог товаров{% endif %}
+    </h2>
+    
+    <div class="books-grid">
         {% for book in books %}
-        <div class="book-card">
+        <div class="book-card" style="position: relative; {% if book.stock_quantity <= 0 %}opacity: 0.7;{% endif %}">
             
+            <!-- Кнопка «Избранное» (Сердечко) -->
+            <button class="fav-btn" onclick="toggleFavorite({{ book.id }}, this)" style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.8); border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; z-index: 5;">
+                🤍
+            </button>
+
+            <!-- Безопасная проверка ссылки на изображение -->
             {% if book.image_url %}
-            <img src="{{ url_for('static', path=book.image_url) }}" alt="{{ book.title }}">
+                <img src="/static/{{ book.image_url }}" alt="{{ book.title }}">
+            {% else %}
+                <div style="width: 100%; height: 310px; background: #eee; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: #8c8c8c;">Нет обложки</div>
             {% endif %}
             
             <div class="book-info">
                 <h3 class="book-title">{{ book.title }}</h3>
                 <p class="book-author">Автор: <span>{{ book.author }}</span></p>
-                <p class="book-genre">Жанр: <span>{{ book.genre }}</span></p>
+                {% if book.product_type == 'книга' and book.genre %}
+                <p class="book-genre">Жанр: <a href="/?genre={{ book.genre | urlencode }}" style="color: inherit; text-decoration: underline;">{{ book.genre }}</a></p>
+                {% endif %}
+                <p class="book-stock" style="font-size: 0.85rem; color: {% if book.stock_quantity > 0 %}#27ae60{% else %}#e74c3c{% endif %};">
+                    {% if book.stock_quantity > 0 %}В наличии ({{ book.stock_quantity }} шт.){% else %}Нет в наличии{% endif %}
+                </p>
                 <p class="book-price">{{ book.price }} ₽</p>
             </div>
             
-            <form action="/cart/add?book_id={{ book.id }}&reader_id=1" method="POST">
+            <!-- Логика доступности товара -->
+            {% if book.stock_quantity > 0 %}
+            <form class="ajax-cart-form" action="/cart/add?book_id={{ book.id }}" method="POST" style="margin-bottom: 8px;">
                 <button type="submit" class="buy-button">Положить в корзину</button>
             </form>
+            {% else %}
+            <button class="buy-button" style="background-color: #bdc3c7; cursor: not-allowed; margin-bottom: 8px;" disabled>Нет в наличии</button>
+            {% endif %}
+
+            {% if book.product_type == 'книга' %}
+            <a href="/book/{{ book.id }}/read" class="buy-button" style="display: block; text-decoration: none; text-align: center; background-color: #7f8c8d; margin-top: 0;">
+                Читать отрывок
+            </a>
+            {% endif %}
             
         </div>
         {% endfor %}
-        
     </div>
 </main>
+
+<script>
+function showToast(message, isSuccess) {
+    const toast = document.getElementById('toast-notification');
+    const toastText = document.getElementById('toast-text');
+    toast.style.backgroundColor = isSuccess ? '#27ae60' : '#e74c3c';
+    toastText.innerText = message;
+    toast.style.display = 'block';
+    setTimeout(function() { toast.style.display = 'none'; }, 4000);
+}
+
+// 1. Обработка добавления в корзину (AJAX)
+document.querySelectorAll('.ajax-cart-form').forEach(function(form) {
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        try {
+            const response = await fetch(this.getAttribute('action'), { method: 'POST' });
+            const data = await response.json();
+            showToast(data.message, data.status === 'success');
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Ошибка при добавлении в корзину', false);
+        }
+    });
+});
+
+// 2. Добавление/Удаление из избранного
+async function toggleFavorite(productId, btn) {
+    try {
+        const response = await fetch('/favorite/toggle/' + productId, { method: 'POST' });
+        const data = await response.json();
+        if (response.status === 401) {
+            showToast(data.message, false);
+            return;
+        }
+        if (data.status === 'added') {
+            btn.innerText = '❤️';
+            showToast(data.message, true);
+        } else {
+            btn.innerText = '🤍';
+            showToast(data.message, true);
+        }
+    } catch (e) {
+        showToast('Не удалось изменить избранное', false);
+    }
+}
+
+// 3. Динамический ("живой") поиск
+const searchInput = document.getElementById('live-search-input');
+const searchResults = document.getElementById('live-search-results');
+
+if (searchInput && searchResults) {
+    searchInput.addEventListener('input', async function() {
+        const val = this.value.trim();
+        if (val.length < 2) {
+            searchResults.style.display = 'none';
+            return;
+        }
+        try {
+            const res = await fetch('/api/search?search=' + encodeURIComponent(val));
+            const items = await res.json();
+            searchResults.innerHTML = '';
+            
+            if (items.length === 0) {
+                searchResults.innerHTML = '<div style="padding: 10px; color:#999;">Ничего не найдено</div>';
+            } else {
+                items.forEach(function(item) {
+                    const div = document.createElement('div');
+                    div.style.padding = '10px';
+                    div.style.borderBottom = '1px solid #eee';
+                    div.style.cursor = 'pointer';
+                    div.innerHTML = '<strong>' + item.title + '</strong> <span style="font-size:0.85rem; color:#666;">(' + item.author + ')</span> — ' + item.price + ' ₽';
+                    div.addEventListener('click', function() {
+                        window.location.href = '/book/' + item.id + '/read';
+                    });
+                    searchResults.appendChild(div);
+                });
+            }
+            searchResults.style.display = 'block';
+        } catch (e) {
+            console.error(e);
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.style.display = 'none';
+        }
+    });
+}
+</script>
+
+<style>
+.filter-btn.active {
+    background-color: #34495e;
+    color: white;
+    border-color: #34495e;
+}
+.filter-btn:hover {
+    background-color: #f1f2f6;
+}
+</style>
 {% endblock %}

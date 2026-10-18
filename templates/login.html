@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Вход в личный кабинет — New Reader{% endblock %}
+
+{% block content %}
+<main class="catalog-container" style="max-width: 400px; margin-top: 80px;">
+    
+    <div class="book-card" style="padding: 40px; border: 1px solid var(--border-color); border-radius: 12px; background-color: var(--bg-card-cart); box-shadow: 0 4px 15px rgba(0,0,0,0.02); color: var(--text-primary); box-sizing: border-box;">
+        
+        <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: 25px; text-align: center; text-transform: none; letter-spacing: normal;">Вход в аккаунт</h2>
+        
+        <!-- БЛОК ВЫВОДА ОШИБКИ (Добавлен) -->
+        {% if error %}
+        <div style="background-color: #fce4e4; border: 1px solid #fcc2c2; color: #cc0000; padding: 12px; border-radius: 6px; font-size: 0.9rem; margin-bottom: 20px; font-weight: 600; text-align: center;">
+            ⚠️ {{ error }}
+        </div>
+        {% endif %}
+        
+        <form action="/login" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Имя пользователя (Логин)</label>
+                <!-- Выводим entered_username, чтобы пользователю не нужно было вводить логин заново -->
+                <input type="text" name="username_input" value="{{ entered_username or '' }}" placeholder="Например: client1" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary); box-sizing: border-box; font-size: 0.95rem;" required>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Пароль</label>
+                <input type="password" name="password_input" placeholder="Введите ваш пароль" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary); box-sizing: border-box; font-size: 0.95rem;" required>
+            </div>
+            
+            <button type="submit" class="buy-button" style="margin-top: 10px; padding: 12px 0; font-size: 1rem; background-color: #aae5f7; width: 100%;">
+                Войти
+            </button>
+        </form>
+        
+        <div style="font-size: 0.88rem; color: var(--text-muted); text-align: center; margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+            <p style="margin: 0 0 5px 0;">Тестовые аккаунты (Логин / Пароль):</p>
+            <span style="color: var(--text-primary); font-family: monospace; background: var(--bg-page); padding: 2px 6px; border-radius: 4px;">client1 / 123</span><br>
+            <span style="color: var(--text-primary); font-family: monospace; background: var(--bg-page); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 5px;">seller1 / 124</span>
+        </div>
+    </div>
+    
+</main>
+{% endblock %}
