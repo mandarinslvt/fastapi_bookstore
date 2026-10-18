@@ -1,67 +1,171 @@
-/* Общие настройки страницы в стиле минимализма */
+/* ==========================================================================
+   1. ПЕРЕМЕННЫЕ И НАСТРОЙКИ СВЕТЛОЙ / ТЁМНОЙ ТЕМЫ
+   ========================================================================== */
+:root {
+    --bg-page: #fcfcfc;
+    --bg-header: #ffffff;
+    --bg-card: transparent;
+    --bg-card-cart: #ffffff;
+    --text-primary: #2b2b2b;
+    --text-secondary: #555555;
+    --text-muted: #8c8c8c;
+    --border-color: #e0e0e0;
+    --input-border: #cccccc;
+    --bg-footer: #f6f6f6;
+}
+
+body.dark-mode {
+    --bg-page: #121212;
+    --bg-header: #1e1e1e;
+    --bg-card: #1e1e1e;
+    --bg-card-cart: #1e1e1e;
+    --text-primary: #f5f5f5;
+    --text-secondary: #b3b3b3;
+    --text-muted: #7a7a7a;
+    --border-color: #333333;
+    --input-border: #444444;
+    --bg-footer: #1a1a1a;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background-color: #fcfcfc; 
+    background-color: var(--bg-page); 
     margin: 0;
     padding: 0;
-    color: #2b2b2b;
+    color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Рамка-обертка для меню сверху сайта */
-.header-wrapper {
-    max-width: 1140px;
-    margin: 20px auto 0 auto; /* Отступ сверху и центрирование */
-    padding: 0 20px;
+/* ==========================================================================
+   2. ЛЕВИТИРУЮЩАЯ ОКРУГЛАЯ ШАПКА (ИДЕАЛЬНАЯ ВЕРСТКА)
+   ========================================================================== */
+
+   .header-wrapper {
+    background-color: transparent; 
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding: 12px 20px 0 20px; 
+    box-sizing: border-box;
 }
 
-/* Навигационная панель внутри рамки */
+.user-greeting {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    white-space: nowrap; /* Запрещает тексту переноситься на вторую строчку */
+}
+
 .navbar {
-    background-color: #ffffff;
-    padding: 15px 0;
-    border: 1px solid #e0e0e0; /* Серая аккуратная рамка */
-    border-radius: 12px;       /* Красивое скругление углов */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); /* Легкая мягкая тень */
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 10px 20px; /* Уменьшили внутренний боковой отступ с 24px до 20px, освободив место */
+    background-color: var(--bg-header); 
+    border: 1px solid var(--border-color); 
+    border-radius: 30px; 
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04); 
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .navbar-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 24px;
+    width: 100%;
+    gap: 15px; /* Зазор между тремя главными логическими блоками */
 }
 
+/* 1. ЛЕВАЯ ЧАСТЬ: Логотип */
 .navbar-logo {
-    color: #005bff;
     font-size: 1.35rem;
     font-weight: 800;
+    color: var(--text-primary);
     text-decoration: none;
     letter-spacing: -0.5px;
+    white-space: nowrap;
+    flex-shrink: 0; /* Запрещаем логотипу сжиматься */
 }
 
+.navbar-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0; /* Категорически запрещаем этому блоку сжиматься или обрезаться! */
+    margin-left: auto; /* Прижимает весь блок строго к правому краю («в стенку панели») */
+}
+
+/* Строка поиска */
+.search-field-wrapper {
+    position: relative;
+    flex-grow: 1;      /* Поиск забирает ВСЁ свободное пространство по центру */
+    flex-shrink: 1;    /* ИСПРАВЛЕНО: Поиск БУДЕТ автоматически уменьшаться, уступая место кнопкам меню */
+    max-width: 400px;  /* Максимальная ширина в идеальных условиях */
+    min-width: 120px;  /* Минимальный предел сжатия */
+}
+
+.search-field-wrapper input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 35px 8px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--input-border);
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    outline: none;
+}
+
+.search-field-wrapper input:focus {
+    border-color: #005bff;
+}
+
+/* Меню шапки */
 .navbar-menu {
+    display: flex;       
+    align-items: center;
+    gap: 12px; 
     list-style: none;
     margin: 0;
     padding: 0;
-    display: flex;
-    gap: 24px;
+    flex-shrink: 0; /* Запрещаем ссылкам переноситься или сжиматься */
 }
 
 .nav-link {
-    color: #2b2b2b;
+    color: var(--text-secondary);
     text-decoration: none;
-    font-size: 0.95rem;
-    font-weight: 500;
+    font-size: 0.88rem; 
+    font-weight: 600;
     transition: color 0.15s ease;
-    padding: 6px 12px;
-    border-radius: 6px;
+    white-space: nowrap;
 }
 
 .nav-link:hover {
     color: #005bff;
-    background-color: #f5f9ff;
 }
 
+.theme-btn {
+    background: none !important; /* Убираем белый фон */
+    border: none !important;     /* Убираем черную рамку */
+    box-shadow: none !important; /* Убираем тени */
+    padding: 0 !important;       /* Убираем внутренние отступы */
+    width: auto !important;      /* Сбрасываем ширину на авто */
+    height: auto !important;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+.theme-btn:hover {
+    transform: scale(1.1);       /* Легкое увеличение при наведении */
+}
+
+/* ==========================================================================
+   3. КАТАЛОГ, КАРТОЧКИ И ФИЛЬТРЫ ТОВАРОВ
+   ========================================================================= */
 .main-header {
     max-width: 1140px;
     margin: 30px auto 10px auto;
@@ -85,9 +189,31 @@ body {
     font-size: 1.3rem;
     font-weight: 700;
     margin-bottom: 24px;
-    color: #8c8c8c; 
+    color: var(--text-muted); 
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+/* Фильтры категорий и инпуты формы поиска в каталоге */
+.search-container input {
+    background-color: var(--bg-header);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--input-border);
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.search-container input:focus {
+    border-color: #005bff;
+}
+
+.filter-btn {
+    background-color: var(--bg-header);
+    color: var(--text-primary);
+    transition: all 0.2s ease;
 }
 
 /* Сетка карточек */
@@ -97,30 +223,31 @@ body {
     gap: 30px;
 }
 
-/* Плоская карточка книги */
+/* Карточка товара */
 .book-card {
-    background-color: transparent;
+    background-color: var(--bg-card);
+    border-radius: 8px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.2s ease, background-color 0.2s ease;
 }
 
 .book-card:hover {
     opacity: 0.9;
 }
 
-/* Обложка книги */
+/* Обложка товара */
 .book-card img {
     width: 100%;
     height: 310px;
     object-fit: contain;
     border-radius: 8px;
-    background-color: #fcfcfc;
+    background-color: var(--bg-page);
     box-shadow: 0 4px 10px rgba(0,0,0,0.03);
 }
 
-/* Текстовый блок книги */
 .book-info {
     padding: 12px 0 6px 0;
 }
@@ -130,7 +257,7 @@ body {
     font-size: 1rem;
     font-weight: 600;
     line-height: 1.3;
-    color: #2b2b2b;
+    color: var(--text-primary);
     height: 42px;
     overflow: hidden;
 }
@@ -138,44 +265,107 @@ body {
 .book-info p {
     margin: 4px 0;
     font-size: 0.88rem;
-    color: #8c8c8c;
+    color: var(--text-muted);
 }
 
 .book-info p span {
-    color: #2b2b2b;
+    color: var(--text-primary);
 }
 
-/* Стилизация цены (крупный полужирный шрифт) */
 .book-price {
     font-size: 1.2rem !important;
     font-weight: 700 !important;
-    color: #2b2b2b !important;
+    color: var(--text-primary) !important;
     margin-top: 10px !important;
 }
 
 .buy-button {
-    background-color: #005bff;
-    color: #ffffff;
+    background-color: #aae5f7; /* Мягкий нежно-голубой пастельный цвет из скриншота */
+    color: #000000;            /* Контрастный темно-синий/черный аккуратный текст */
     border: none;
     width: 100%;
-    padding: 10px 0;
-    font-size: 0.9rem;
-    font-weight: 600;
-    border-radius: 6px;
+    padding: 11px 0;
+    font-size: 0.95rem;
+    font-weight: 700;          /* Жирный выразительный шрифт */
+    border-radius: 10px;       /* Мягкие закругленные углы */
     cursor: pointer;
-    transition: background-color 0.15s ease;
+    box-sizing: border-box;
+    transition: background-color 0.15s ease, transform 0.1s ease;
     margin-top: 6px;
+    letter-spacing: 0.2px;
 }
 
+/* Эффект при наведении курсора */
 .buy-button:hover {
-    background-color: #0046cc;
+    background-color: #7fd9f5; /* Чуть более насыщенный голубой при наведении */
 }
 
+/* Эффект легкого нажатия кнопки при клике */
+.buy-button:active {
+    transform: scale(0.98);
+}
+
+/* ==========================================================================
+   4. СТИЛИЗАЦИЯ КОРЗИНЫ
+   ========================================================================== */
+.cart-list {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(48%, 1fr)) !important; 
+    gap: 20px !important;
+    width: 100%;
+}
+
+.cart-list .book-card {
+    background-color: var(--bg-card-cart) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 12px !important;
+    padding: 20px 30px !important; 
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 24px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02) !important;
+}
+
+.cart-list .book-card img {
+    width: 65px !important;
+    height: 95px !important;
+    object-fit: contain !important;
+    flex-shrink: 0;
+}
+
+.cart-list .book-info {
+    flex-grow: 1;
+    min-width: 0; 
+    padding: 0 !important;
+}
+
+.cart-list .book-title {
+    font-size: 0.95rem !important; 
+    height: auto !important;
+    margin-bottom: 4px;
+}
+
+.cart-list form {
+    margin: 0 !important;
+    flex-shrink: 0;
+}
+
+.cart-list .buy-button {
+    width: auto !important;
+    padding: 8px 16px !important;
+    margin: 0 !important;
+}
+
+/* ==========================================================================
+   5. ПОДВАЛ САЙТА (ФУТЕР) С ПОДДЕРЖКОЙ СТИЛЕЙ И ШРИФТОВ
+   ========================================================================== */
 .main-footer {
-    background-color: #f6f6f6;
+    background-color: var(--bg-footer);
     padding: 60px 0 0 0;
-    margin-top: 80px; /* Отделяем футер от основного контента страницы */
-    border-top: 1px solid #e0e0e0;
+    margin-top: 80px; 
+    border-top: 1px solid var(--border-color);
 }
 
 .footer-container {
@@ -198,7 +388,7 @@ body {
     font-weight: 700;
     margin-top: 0;
     margin-bottom: 20px;
-    color: #2b2b2b;
+    color: var(--text-primary);
 }
 
 .footer-column ul {
@@ -212,7 +402,7 @@ body {
 }
 
 .footer-column ul li a {
-    color: #555555;
+    color: var(--text-secondary);
     text-decoration: none;
     font-size: 0.88rem;
     transition: color 0.15s ease;
@@ -222,11 +412,10 @@ body {
     color: #005bff;
 }
 
-/* Кнопка "Написать обращение" */
 .footer-btn {
-    background-color: #ffffff;
-    color: #2b2b2b;
-    border: 1px solid #ccc;
+    background-color: var(--bg-header);
+    color: var(--text-primary);
+    border: 1px solid var(--input-border);
     padding: 10px 16px;
     font-size: 0.85rem;
     font-weight: 600;
@@ -238,34 +427,33 @@ body {
 }
 
 .footer-btn:hover {
-    background-color: #f0f0f0;
+    background-color: var(--bg-page);
 }
 
 .footer-phone {
     font-size: 1.1rem;
     font-weight: 700;
-    color: #2b2b2b;
+    color: var(--text-primary);
     margin-top: 10px;
 }
 
-/* Блок с QR-кодом */
 .qr-column {
     max-width: 240px;
 }
 
 .qr-box {
-    background-color: #ffffff;
+    background-color: var(--bg-header);
     padding: 20px;
     border-radius: 12px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--border-color);
     text-align: center;
 }
 
 .qr-placeholder {
     width: 100px;
     height: 100px;
-    background-color: #2b2b2b;
-    color: #fff;
+    background-color: var(--text-primary);
+    color: var(--bg-header);
     margin: 0 auto 15px auto;
     display: flex;
     align-items: center;
@@ -277,15 +465,15 @@ body {
 
 .qr-box p {
     font-size: 0.78rem;
-    color: #8c8c8c;
+    color: var(--text-muted);
     margin: 0;
     line-height: 1.3;
 }
 
 .footer-bottom {
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid var(--border-color);
     padding: 20px 0;
-    background-color: #f6f6f6;
+    background-color: var(--bg-footer);
 }
 
 .footer-bottom-container {
@@ -299,7 +487,7 @@ body {
 
 .copyright {
     font-size: 0.8rem;
-    color: #8c8c8c;
+    color: var(--text-muted);
     margin: 0;
 }
 
@@ -311,83 +499,13 @@ body {
 
 .social-link {
     color: #7f8c8d;
-    font-size: 1.4rem; /* Размер иконок */
+    font-size: 1.4rem; 
     text-decoration: none;
     transition: color 0.2s ease, transform 0.2s ease;
     display: inline-block;
 }
 
-/* Эффект при наведении (Ховер) */
 .social-link:hover {
-    color: #005bff; 
+    color: #005bff;
     transform: translateY(-2px);
-}
-
-.catalog-container .book-card[style*="flex-direction: row"] {
-    display: flex !important;
-    flex-direction: row !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    gap: 20px !important;
-    border-bottom: 1px solid #f0f0f0;
-    padding: 15px 0 !important;
-    width: 100%;
-}
-
-.catalog-container .book-card[style*="flex-direction: row"] .book-info {
-    flex-grow: 1;
-    min-width: 0;
-}
-
-.cart-list {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(48%, 1fr)) !important; /* Автоматически делит на 2 колонки */
-    gap: 20px !important;
-    width: 100%;
-}
-
-.cart-list .book-card {
-    background-color: #ffffff !important;
-    border: 1px solid #e0e0e0 !important;
-    border-radius: 12px !important;
-    padding: 20px 30px !important; 
-    display: flex !important;
-    flex-direction: row !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    gap: 24px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02) !important;
-}
-
-/* Обложка книги в корзине */
-.cart-list .book-card img {
-    width: 65px !important;
-    height: 95px !important;
-    object-fit: contain !important;
-    flex-shrink: 0;
-}
-
-/* Блок с текстом по центру */
-.cart-list .book-info {
-    flex-grow: 1;
-    min-width: 0; /* Чтобы длинные названия переносились, а не ломали кнопку */
-    padding: 0 !important;
-}
-
-.cart-list .book-title {
-    font-size: 0.95rem !important; /* Чуть аккуратнее шрифт */
-    height: auto !important;
-    margin-bottom: 4px;
-}
-
-/* Кнопка "Удалить" справа */
-.cart-list form {
-    margin: 0 !important;
-    flex-shrink: 0;
-}
-
-.cart-list .buy-button {
-    width: auto !important;
-    padding: 8px 16px !important;
-    margin: 0 !important;
 }

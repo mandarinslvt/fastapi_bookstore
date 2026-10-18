@@ -4,23 +4,25 @@
 
 {% block content %}
 <main class="catalog-container">
-    <h2 class="section-title">Выбранные книги</h2>
+    <h2 class="section-title">Выбранные товары</h2>
     <div class="cart-list"> 
         {% if cart_items %}
             {% for item in cart_items %}
-            <div class="book-card" style="display: flex; flex-direction: row; gap: 20px; align-items: center;">
+            <div class="book-card" style="display: flex; flex-direction: row; gap: 20px; align-items: center; background-color: var(--bg-card-cart); border: 1px solid var(--border-color); color: var(--text-primary);">
                 
                 {% if item.book.image_url %}
                 <img src="{{ url_for('static', path=item.book.image_url) }}" alt="{{ item.book.title }}" style="width:80px; height:110px; object-fit:cover; border-radius:4px;">
                 {% endif %}
                 
                 <div class="book-info" style="flex-grow: 1;">
-                    <h3 class="book-title" style="height:auto; margin-bottom:5px;">{{ item.book.title }}</h3>
-                    <p>Автор: <span>{{ item.book.author }}</span></p>
-                    <p>Цена: <span>{{ item.book.price }} ₽</span></p>
-                    <p>Количество: <span>{{ item.quantity }} шт.</span></p>
+                    <h3 class="book-title" style="height:auto; margin-bottom:5px; color: var(--text-primary);">{{ item.book.title }}</h3>
+                    <p style="color: var(--text-muted);">Автор: <span style="color: var(--text-primary);">{{ item.book.author }}</span></p>
+                    <p style="color: var(--text-muted);">Цена: <span style="color: var(--text-primary);">{{ item.book.price }} ₽</span></p>
+                    <p style="color: var(--text-muted);">Количество: <span style="color: var(--text-primary);">{{ item.quantity }} шт.</span></p>
+                    <p style="color: var(--text-muted);">Тип: <span style="color: var(--text-primary);">{{ item.book.product_type }}</span></p>
                 </div>
                 
+                <!-- Удаление элемента -->
                 <form action="/cart/delete/{{ item.id }}" method="POST" style="padding-right: 20px;">
                     <button type="submit" class="buy-button" style="background-color: #e74c3c; width: auto; padding: 10px 20px; margin-right: 15px;">
                         Удалить
@@ -29,18 +31,18 @@
             </div>
             {% endfor %}
         {% else %}
-            <p>Ваша корзина пока пуста.</p>
+            <p style="color: var(--text-muted);">Ваша корзина пока пуста.</p>
         {% endif %}
     </div>
 
     <div class="cart-actions-container" style="display: flex; gap: 30px; margin-top: 40px; flex-wrap: wrap;">
        
-        <!-- Блок промокода -->
-        <div class="book-card" style="max-width: 400px; flex: 1; min-width: 280px; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 20px;">
-            <h3 class="book-title" style="height: auto; margin-bottom: 15px;">Применить промокод</h3>
+        <!-- Блок промокода (Адаптирован под темную тему) -->
+        <div class="book-card" style="max-width: 400px; flex: 1; min-width: 280px; background-color: var(--bg-card-cart); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px;">
+            <h3 class="book-title" style="height: auto; margin-bottom: 15px; color: var(--text-primary);">Применить промокод</h3>
             
             <form id="promo-form" style="display: flex; flex-direction: column; gap: 10px;">
-                <input type="text" name="code_input" placeholder="Введите промокод (Допустим SALE100)" style="padding: 10px; border-radius: 6px; border: 1px solid #ccc;" required>
+                <input type="text" name="code_input" placeholder="Введите промокод (SALE100)" style="padding: 10px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary);" required>
                 <input type="hidden" name="cart_total" value="{{ total_price }}">
                 <button type="submit" class="buy-button" style="margin-top: 0; background-color: #34495e;">Активировать</button>
             </form>
@@ -48,28 +50,28 @@
             <p id="promo-message" style="margin-top: 10px; font-size: 0.9rem; font-weight: 600; display: none;"></p>
         </div>
 
-        <!-- Блок оформления заказа -->
-        <div class="book-card" style="max-width: 400px; flex: 1; min-width: 280px; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between;">
-            <h3 class="book-title" style="height: auto; margin-bottom: 10px;">Оформление заказа</h3>
+        <!-- Блок оформления заказа (Адаптирован под темную тему) -->
+        <div class="book-card" style="max-width: 400px; flex: 1; min-width: 280px; background-color: var(--bg-card-cart); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between;">
+            <h3 class="book-title" style="height: auto; margin-bottom: 10px; color: var(--text-primary);">Оформление заказа</h3>
             
-            <p style="font-size: 0.95rem; color: #8c8c8c; margin-bottom: 5px;">
-                Стоимость книг: <span>{{ total_price }} ₽</span>
+            <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 5px;">
+                Стоимость товаров: <span style="color: var(--text-primary);">{{ total_price }} ₽</span>
             </p>
             
             <p id="discount-row" style="font-size: 0.95rem; color: #e74c3c; margin-bottom: 5px; font-weight: 600; display: none;">
                 Скидка по промокоду: -<span id="discount-val">0</span> ₽
             </p>
 
-            <p style="font-size: 1.1rem; font-weight: 700; color: #2b2b2b; margin-bottom: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+            <p style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; border-top: 1px solid var(--border-color); padding-top: 10px;">
                 Итого к оплате: <span id="final-price-val" style="color: #005bff;">{{ total_price }} ₽</span>
             </p>
             
-            <p style="font-size: 0.9rem; color: #8c8c8c; margin-bottom: 15px;">
-                Ваш баланс: <strong style="color: #27ae60;">{{ reader.balance }} ₽</strong>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 15px;">
+                Ваш баланс: <strong style="color: #27ae60;">{{ user.balance }} ₽</strong>
             </p>
             
             <form id="purchase-form">
-                <input type="hidden" name="reader_id" value="1">
+                <!-- reader_id удален, так как бэкенд определяет пользователя по сессии/кукам самостоятельно -->
                 <button type="submit" class="buy-button" style="margin-top: 0; background-color: #27ae60; font-size: 1.05rem; padding: 12px 0;">
                      Оформить и купить
                 </button>
@@ -109,16 +111,14 @@ document.getElementById('promo-form').addEventListener('submit', async function(
         console.error('Error:', error);
     }
 });
+
 document.getElementById('purchase-form').addEventListener('submit', async function(e) {
-    e.preventDefault(); // Запрещаем черную страницу
-    
-    const formData = new FormData(this);
+    e.preventDefault(); 
     const messageElement = document.getElementById('purchase-message');
     
     try {
         const response = await fetch('/purchase', {
-            method: 'POST',
-            body: formData
+            method: 'POST'
         });
         const data = await response.json();
         
@@ -130,6 +130,8 @@ document.getElementById('purchase-form').addEventListener('submit', async functi
         }
     } catch (error) {
         console.error('Error:', error);
+        messageElement.innerText = 'Ошибка соединения с сервером';
+        messageElement.style.display = 'block';
     }
 });
 </script>

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Панель продавца — New Reader{% endblock %}
+
+{% block content %}
+<main class="catalog-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; flex-wrap: wrap; gap: 15px;">
+        <h2 class="section-title" style="margin: 0; color: var(--text-primary); text-transform: none; font-size: 1.6rem;">🏪 Кабинет издательства / Продавца</h2>
+        <span style="font-size: 1.1rem; color: #27ae60; font-weight: 700; background: var(--bg-card-cart); padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border-color);">
+            Заработано: {{ user.balance }} ₽
+        </span>
+    </div>
+
+    <div style="display: flex; gap: 40px; flex-wrap: wrap;">
+        
+        <!-- ФОРМА ДОБАВЛЕНИЯ ТОВАРА -->
+        <div class="book-card" style="flex: 1; min-width: 320px; max-width: 450px; background-color: var(--bg-card-cart); border: 1px solid var(--border-color); border-radius: 16px; padding: 25px; height: fit-content; box-shadow: 0 4px 15px rgba(0,0,0,0.02);">
+            <h3 style="margin: 0 0 20px 0; color: var(--text-primary); font-size: 1.2rem; font-weight: 700;">➕ Добавить новый товар</h3>
+            
+            <form action="/seller/book/add" method="POST" style="display: flex; flex-direction: column; gap: 14px;">
+                <div>
+                    <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Тип товара</label>
+                    <select name="product_type" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary); font-size: 0.9rem;" required>
+                        <option value="книга">Книга</option>
+                        <option value="закладки">Закладка</option>
+                        <option value="аксессуары">Аксессуар</option>
+                        <option value="письменные принадлежности">Письменные принадлежности</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Название</label>
+                    <input type="text" name="title" placeholder="Например: Мартин Иден" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary);" required>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Автор / Производитель</label>
+                    <input type="text" name="author" placeholder="Например: Джек Лондон" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary);" required>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Жанр (только для книг)</label>
+                    <input type="text" name="genre" placeholder="Например: Классика" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary);">
+                </div>
+
+                <div style="display: flex; gap: 15px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Цена (₽)</label>
+                        <input type="number" name="price" value="500" min="1" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary);" required>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">На склад (шт.)</label>
+                        <input type="number" name="stock_quantity" value="10" min="0" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary);" required>
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Путь к фото обложки</label>
+                    <input type="text" name="image_url" placeholder="images/имя_файла.jpg" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary);">
+                </div>
+
+                <div>
+                    <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Ознакомительный фрагмент (5-10 стр.)</label>
+                    <textarea name="preview_text" placeholder="Введите начальный текст книги для ознакомления..." rows="4" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary); font-family: inherit; resize: vertical;" required></textarea>
+                </div>
+
+                <button type="submit" class="buy-button" style="background-color: #aae5f7; margin-top: 5px;">Разместить товар на витрине</button>
+            </form>
+        </div>
+
+        <!-- СПИСОК АССОРТИМЕНТА ПРОДАВЦА -->
+        <div style="flex: 2; min-width: 350px;">
+            <h3 style="margin: 0 0 20px 0; color: var(--text-primary); font-size: 1.2rem; font-weight: 700;">📦 Текущий ассортимент на складе</h3>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                {% if product %}
+                    {% for p in product %}
+                    <div class="book-card" style="display: flex; flex-direction: row; gap: 20px; align-items: center; background-color: var(--bg-card-cart); border: 1px solid var(--border-color); padding: 15px 20px; border-radius: 12px; position: relative;">
+                        
+                        <!-- Статус на витрине -->
+                        <div style="position: absolute; top: 15px; right: 20px;">
+                            {% if p.is_active %}
+                                <span style="font-size: 0.75rem; background-color: #27ae60; color: white; padding: 3px 8px; border-radius: 10px; font-weight: 600;">Активен</span>
+                            {% else %}
+                                <span style="font-size: 0.75rem; background-color: #7f8c8d; color: white; padding: 3px 8px; border-radius: 10px; font-weight: 600;">В архиве</span>
+                            {% endif %}
+                        </div>
+
+                        {% if p.image_url %}
+                            <img src="/static/{{ p.image_url }}" alt="{{ p.title }}" style="width: 60px; height: 85px; object-fit: cover; border-radius: 4px;">
+                        {% else %}
+                            <div style="width: 60px; height: 85px; background: var(--bg-page); display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 0.65rem; color: var(--text-muted); border: 1px solid var(--border-color); flex-shrink: 0;">Нет фото</div>
+                        {% endif %}
+
+                        <div style="flex-grow: 1;">
+                            <h4 style="margin: 0 0 4px 0; color: var(--text-primary); font-size: 1.05rem;">{{ p.title }}</h4>
+                            <p style="margin: 2px 0; font-size: 0.85rem; color: var(--text-muted);">Автор: {{ p.author }} | Категория: <span style="text-transform: capitalize;">{{ p.product_type }}</span></p>
+                            
+                            <p style="margin: 4px 0; font-size: 0.88rem; font-weight: 600; color: var(--text-primary);">
+                                Остаток: 
+                                {% if p.stock_quantity > 0 %}
+                                    <span style="color: #27ae60;">{{ p.stock_quantity }} шт.</span>
+                                {% else %}
+                                    <span style="color: #e74c3c; font-weight: 700;">Нет в наличии (Перешел в архив)</span>
+                                {% endif %}
+                                | Цена: <span>{{ p.price }} ₽</span>
+                            </p>
+                        </div>
+
+                        <!-- Кнопка удаления в архив -->
+                        {% if p.is_active %}
+                        <form action="/seller/book/delete/{{ p.id }}" method="POST" style="margin: 0;">
+                            <button type="submit" class="buy-button" style="background-color: #e74c3c; color: white; width: auto; padding: 8px 16px; margin: 0; font-size: 0.85rem;">
+                                Удалить
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="color: var(--text-muted);">Список товаров пуст.</p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</main>
+{% endblock %}

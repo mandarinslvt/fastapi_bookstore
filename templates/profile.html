@@ -5,21 +5,66 @@
 {% block content %}
 <main class="catalog-container" style="max-width: 600px;">
     <h2 class="section-title">Личные данные</h2>
-    <div class="book-card" style="padding: 30px;">
+    <div class="book-card" style="padding: 30px; background-color: var(--bg-card-cart); border: 1px solid var(--border-color); color: var(--text-primary);">
         <div class="book-info" style="margin-bottom: 20px;">
-            <h3 class="book-title" style="font-size: 1.8rem; height: auto; margin-bottom: 5px;">
-                {{ user.name }} {{ user.second_name }}
+            <h3 class="book-title" style="font-size: 1.8rem; height: auto; margin-bottom: 5px; color: var(--text-primary);">
+                {{ user.name or '' }} {{ user.second_name or '' }}
             </h3>
-            <p style="font-size: 1.1rem;">Статус: <span style="color: #27ae60; font-weight: bold;">Постоянный читатель</span></p>
+            <p style="font-size: 1.1rem; color: var(--text-secondary);">
+                Статус: <span style="color: #27ae60; font-weight: bold;">Постоянный читатель</span>
+            </p>
         </div>
-        <div class="book-info" style="border-top: 1px solid #eee; padding-top: 20px;">
-            <p><strong>Баланс счета:</strong> <span style="color: #27ae60; font-weight: bold;">{{ user.balance }} ₽</span></p>
-            <p><strong>Возраст:</strong> <span>{{ user.age }} лет</span></p>
-            <p><strong>Email:</strong> <span>{{ user.email }}</span></p>
-            <p><strong>Телефон:</strong> <span>{{ user.phone }}</span></p>
-            <p><strong>Дата регистрации:</strong> <span>{{ user.registration_date }}</span></p>
+        <div class="book-info" style="border-top: 1px solid var(--border-color); padding-top: 20px;">
+            <p style="color: var(--text-secondary);"><strong>Баланс счета:</strong> <span style="color: #27ae60; font-weight: bold;">{{ user.balance }} ₽</span></p>
+            <p style="color: var(--text-secondary);"><strong>Возраст:</strong> <span>{{ user.age or 'Не указан' }}</span></p>
+            <p style="color: var(--text-secondary);"><strong>Email:</strong> <span>{{ user.email }}</span></p>
+            <p style="color: var(--text-secondary);"><strong>Телефон:</strong> <span>{{ user.phone or 'Не указан' }}</span></p>
+            <p style="color: var(--text-secondary);"><strong>Дата регистрации:</strong> <span>{{ user.registration_date }}</span></p>
         </div>
-        <button class="buy-button" style="background-color: #e74c3c; margin-top: 30px;">Выйти из профиля</button>
+        
+        <!-- Исправлено: Кнопка теперь перенаправляет на маршрут выхода -->
+        <a href="/logout" class="buy-button" style="display: block; text-decoration: none; text-align: center; background-color: #e74c3c; margin-top: 30px;">
+            Выйти из профиля
+        </a>
     </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 40px; margin-bottom: 20px;">
+        <h3 class="section-title" style="color: var(--text-primary); text-transform: none; font-size: 1.4rem; margin: 0;">📦 История ваших заказов</h3>
+        {% if purchases %}
+            <span style="font-size: 0.95rem; color: var(--text-muted);">
+                Всего потрачено: <strong style="color: #e74c3c;">{{ purchases | map(attribute='total_price') | sum }} ₽</strong>
+            </span>
+        {% endif %}
+    </div>
+    
+    <div class="cart-list" style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
+        {% if purchases %}
+            {% for purchase in purchases %}
+            <div class="book-card" style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 20px; border: 1px solid var(--border-color); border-radius: 12px; background-color: var(--bg-card-cart); color: var(--text-primary); width: 100%; box-sizing: border-box;">
+                
+                <div style="flex-grow: 1;">
+                    <h4 style="margin: 0 0 6px 0; color: var(--text-primary); font-size: 1.1rem;">{{ purchase.product.title }}</h4>
+                    <p style="margin: 4px 0; font-size: 0.88rem; color: var(--text-muted);">Автор: {{ purchase.product.author }}</p>
+                    <p style="margin: 4px 0; font-size: 0.88rem; color: var(--text-muted);">Тип: {{ purchase.product.product_type }}</p>
+                    
+                    <p style="margin: 4px 0; font-size: 0.88rem; color: #005bff; font-weight: 500;">
+                        🏬 Куда ушли деньги: {{ purchase.seller.company_name or purchase.seller.username }}
+                    </p>
+                </div>
+                
+                <div style="text-align: right; flex-shrink: 0;">
+                    <span style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">{{ purchase.total_price }} ₽</span>
+                    <p style="margin: 4px 0 0 0; font-size: 0.78rem; color: var(--text-muted);">
+                        {{ purchase.purchase_date.strftime('%d.%m.%Y %H:%M') }}
+                    </p>
+                </div>
+                
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="color: var(--text-muted);">Вы еще не совершали покупок в нашем магазине.</p>
+        {% endif %}
+    </div>
+
 </main>
 {% endblock %}

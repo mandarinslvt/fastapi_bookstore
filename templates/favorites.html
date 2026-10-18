@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Мои книги — Избранное{% endblock %}
+
+{% block content %}
+<main class="catalog-container">
+    
+    <!-- Блок всплывающих уведомлений (Toast) -->
+    <div id="toast-notification" style="position: fixed; top: 20px; right: 20px; z-index: 9999; padding: 15px 25px; border-radius: 8px; color: #ffffff; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; transition: all 0.3s ease;">
+        <span id="toast-text">Уведомление</span>
+    </div>
+
+    <h2 class="section-title" style="color: var(--text-primary); text-transform: none; font-size: 1.5rem; margin-bottom: 30px;">🖤 Ваши отложенные книги</h2>
+    
+    <div class="books-grid">
+        {% if books %}
+            {% for book in books %}
+            <!-- Каждой карточке даем уникальный ID, чтобы JS мог её удалить из верстки -->
+            <div class="book-card" id="fav-card-{{ book.id }}" style="position: relative; {% if book.stock_quantity <= 0 %}opacity: 0.7;{% endif %}">
+                
+                <!-- Кнопка «Удалить из избранного» (Красное сердечко) -->
+                <button class="fav-btn" onclick="removeFromFavorites({{ book.id }}, this)" style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.9); border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; z-index: 5; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" title="Удалить из избранного">
+                    ❤️
+                </button>
+
+                <!-- Фото обложки -->
+                {% if book.image_url %}
+                    <img src="/static/{{ book.image_url }}" alt="{{ book.title }}">
+                {% else %}
+                    <div style="width: 100%; height: 310px; background: var(--bg-footer); display: flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--text-muted); border: 1px solid var(--border-color);">Нет обложки</div>
+                {% endif %}
+                
+                <!-- Информация о книге -->
+                <div class="book-info">
+                    <h3 class="book-title">{{ book.title }}</h3>
+                    <p class="book-author">Автор: <span>{{ book.author }}</span></p>
+                    <p class="book-stock" style="font-size: 0.85rem; color: {% if book.stock_quantity > 0 %}#27ae60{% else %}#e74c3c{% endif %};">
+                        {% if book.stock_quantity > 0 %}В наличии ({{ book.stock_quantity }} шт.){% else %}Нет в наличии{% endif %}
+                    </p>
+                    <p class="book-price">{{ book.price }} ₽</p>
+                </div>
+                
+                <!-- Кнопка корзины / Наличия -->
+                {% if book.stock_quantity > 0 %}
+                <form class="ajax-cart-form" action="/cart/add?book_id={{ book.id }}" method="POST" style="margin-bottom: 8px;">
+                    <button type="submit" class="buy-button">Положить в корзину</button>
+                </form>
+                {% else %}
+                <button class="buy-button" style="background-color: #bdc3c7; cursor: not-allowed; margin-bottom: 8px;" disabled>Нет в наличии</button>
+                {% endif %}
+
+                <!-- Ознакомительный фрагмент -->
+                {% if book.product_type == 'книга' %}
+                <a href="/book/{{ book.id }}/read" class="buy-button" style="display: block; text-decoration: none; text-align: center; background-color: #7f8c8d; margin-top: 0;">
+                    Читать отрывок
+                </a>
+                {% endif %}
+                
+            </div>
+            {% endfor %}
+        {% else %}
+            <!-- Заглушка, если в избранном пусто -->
+            <div style="grid-column: 1 / -1; text-align: center; padding: 60px 0; color: var(--text-muted);">
+                <p style="font-size: 1.1rem; margin-bottom: 20px;">В вашем списке «Мои книги» пока ничего нет.</p>
+                <a href="/" class="buy-button" style="display: inline-block; width: auto; padding: 12px 30px; text-decoration: none; background-color: #005bff;">Перейти в каталог</a>
+            </div>
+        {% endif %}
+    </div>
+</main>
+
+<script>
+// Функция вывода всплывающих уведомлений
+function showToast(message, isSuccess) {
+    const toast = document.getElementById('toast-notification');
+    const toastText = document.getElementById('toast-text');
+    toast.style.backgroundColor = isSuccess ? '#27ae60' : '#e74c3c';
+    toastText.innerText = message;
+    toast.style.display = 'block';
+    setTimeout(function() { toast.style.display = 'none'; }, 4000);
+}
+
+// Добавление в корзину из избранного без перезагрузки
+document.querySelectorAll('.ajax-cart-form').forEach(function(form) {
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        try {
+            const response = await fetch(this.getAttribute('action'), { method: 'POST' });
+            const data = await response.json();
+            showToast(data.message, data.status === 'success' || response.ok);
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Ошибка при добавлении в корзину', false);
+        }
+    });
+});
+
+// Динамическое удаление книги из Избранного (Мягкое скрытие карточки)
+async function removeFromFavorites(productId, btn) {
+    try {
+        const response = await fetch('/favorite/toggle/' + productId, { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.status === 'removed') {
+            showToast('Удалено из списка любимых книг', true);
+            
+            // Находим карточку по ID и плавно её скрываем
+            const card = document.getElementById('fav-card-' + productId);
+            if (card) {
+                card.style.transition = 'all 0.3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.9)';
+                setTimeout(function() {
+                    card.remove();
+                    // Если после удаления карточек не осталось вообще — обновляем страницу, чтобы показалась пустая заглушка
+                    if (document.querySelectorAll('.book-card').length === 0) {
+                        window.location.reload();
+                    }
+                }, 300);
+            }
+        }
+    } catch (e) {
+        showToast('Не удалось обновить избранное', false);
+    }
+}
+</script>
+{% endblock %}
