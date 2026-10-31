@@ -93,48 +93,67 @@ async def api_search(search: str | None = None, db: Session = Depends(get_db)):
 
 # - - -
 
+@app.get('/register')
+async def register_page(request: Request, current_user: User_obj = Depends(get_current_user)):
+    if current_user:
+        return RedirectResponse(url='/', status_code=status.HTTP_303_SEE_OTHER)
+    return templates.TemplateResponse(request=request, name='register.html', context={'user': None})
+
 @app.post('/register')
 async def register_user(
-    username: str = Form(...), password: str = Form(...),
-    name: str = Form(...), second_name: str = Form(...),
-    email: str = Form(...), role: str = Form('client'),
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    email: str = Form(...),
+    name: str = Form(None),
+    second_name: str = Form(None),
+    company_name: str = Form(None),
+    role: str = Form(...),
     db: Session = Depends(get_db)
 ):
+    if role == 'admin' or role == 'administrator':
+        return templates.TemplateResponse(
+            request=request, name='register.html',
+            context={'error': 'Вы не можете зарегистрироваться в роли администратора.'}
+        )
+    
     existing_user = db.execute(select(User_obj).where(User_obj.username == username)).scalars().first()
     if existing_user:
-        raise HTTPException(status_code=400, detail='Пользователь с таким логином уже существует')
-        
+        return templates.TemplateResponse(
+            request=request, name='register.html',
+            context={'error': 'Такой пользователь уже зарегистрирован.'}
+        )
+
+    initial_balance = 50000 if role == 'client' else 0
+
     new_user = User_obj(
-        username=username, password=password, role=role,
-        name=name, email=email, second_name=second_name
+        username=username,
+        password=password,
+        role=role,
+        email=email,
+        name=name if role == 'client' else None,
+        second_name=second_name if role == 'client' else None,
+        company_name=company_name if role == 'seller' else None,
+        balance=initial_balance
     )
+
     db.add(new_user)
     db.commit()
 
-    response = RedirectResponse(url='/', status_code=status.HTTP_303_SEE_OTHER)
-    response.set_cookie(key='user_id', value=str(new_user.id), httponly=True)
-    return response
-
-# - - -
-
+    # 5. УСПЕХ: Авторизуем пользователя (ставим куку) и отправляем на главную
+    res = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+    res.set_cookie(key="user_id", value=str(new_user.id), httponly=True)
+    return res
+    
+# --- ВХОД: СТРАНИЦА ФОРМЫ (GET) ---
 @app.get('/login')
-async def login_page(
-    request: Request, 
-    current_user: User_obj = Depends(get_current_user)
-    ):
-    # Если пользователь уже авторизован, отправляем его на главную
+async def login_page(request: Request, current_user: User_obj = Depends(get_current_user)):
     if current_user:
         return RedirectResponse(url='/', status_code=status.HTTP_303_SEE_OTHER)
-        
-    # Иначе открываем созданную страницу login.html
-    return templates.TemplateResponse(
-        request=request, 
-        name='login.html', 
-        context={'user': current_user}
-    )
+    return templates.TemplateResponse(request=request, name='login.html', context={'user': current_user})
 
 
-# - - -
+# --- ВХОД: ОБРАБОТКА ФОРМЫ (POST) ---
 @app.post('/login')
 async def login_user(
     request: Request,
@@ -142,14 +161,12 @@ async def login_user(
     password_input: str = Form(...),        
     db: Session = Depends(get_db)
 ):
-    # Ищем пользователя в базе данных
     query = select(User_obj).where(User_obj.username == username_input)
     user = db.execute(query).scalars().first()
     
     if not user or user.password != password_input:
         return templates.TemplateResponse(
-            request=request, 
-            name='login.html', 
+            request=request, name='login.html', 
             context={
                 'user': None, 
                 'error': "Неверный логин или пароль", 
@@ -161,6 +178,8 @@ async def login_user(
     res.set_cookie(key="user_id", value=str(user.id), httponly=True)
     return res
 
+
+# --- ВЫХОД (GET) ---
 @app.get('/logout')
 async def logout_user():
     response = RedirectResponse(url='/', status_code=status.HTTP_303_SEE_OTHER)
@@ -198,7 +217,7 @@ async def read_book_preview(book_id: int, request: Request, current_user: User_o
     )
 
 
-# --- КОРЗИНА И ИЗБРАННОЕ (ДИНАМИЧЕСКИЕ ЧЕРЕЗ JSON/AJAX) ---
+# --- КОРЗИНА И ИЗБРАННОЕ ---
 
 @app.get('/favorites')
 async def get_favorites_page(

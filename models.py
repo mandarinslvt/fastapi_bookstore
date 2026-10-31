@@ -25,8 +25,6 @@ class Product_obj(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
     author: Mapped[str] = mapped_column(String, nullable=False)
-    
-    # --- НОВЫЕ ПОЛЯ ДЛЯ КАТЕГОРИЗАЦИИ И СКЛАДА ---
     product_type: Mapped[str] = mapped_column(String, default='книга', nullable=False) # 'книга', 'аксессуары', 'закладки', 'письменные принадлежности'
     genre: Mapped[str | None] = mapped_column(String, nullable=True) # Жанр (только для книг)
     stock_quantity: Mapped[int] = mapped_column(Integer, default=10, nullable=False) # Количество на складе

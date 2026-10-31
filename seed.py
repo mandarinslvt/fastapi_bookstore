@@ -49,7 +49,7 @@ def seed_users_and_promo():
         )
 
         promo = Promo_obj(
-            code="SALE100", 
+            code='SALE100', 
             discount_amount=100, 
             active=True, 
             expires_at=datetime.now() + timedelta(days=10)
@@ -71,7 +71,7 @@ def seed_users_and_promo():
 
 def seed_products(seller_id):
     if not seller_id:
-        print("Пропуск создания товаров: отсутствует ID продавца.")
+        print('Пропуск создания товаров: отсутствует ID продавца.')
         return
 
     db = SessionLocal()

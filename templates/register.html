@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Регистрация нового пользователя — New Reader{% endblock %}
+
+{% block content %}
+<main class="catalog-container" style="max-width: 450px; margin-top: 60px;">
+    
+    <div class="book-card" style="padding: 40px; border: 1px solid var(--border-color); border-radius: 12px; background-color: var(--bg-card-cart); box-shadow: 0 4px 15px rgba(0,0,0,0.02); color: var(--text-primary); box-sizing: border-box;">
+        
+        <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: 25px; text-align: center;">Регистрация в магазине</h2>
+        
+        {% if error %}
+        <div style="background-color: #fce4e4; border: 1px solid #fcc2c2; color: #cc0000; padding: 12px; border-radius: 6px; font-size: 0.9rem; margin-bottom: 20px; font-weight: 600; text-align: center;">
+            ⚠️ {{ error }}
+        </div>
+        {% endif %}
+        
+        <form action="/register" method="POST" id="registration-form" style="display: flex; flex-direction: column; gap: 16px;">
+            
+            <!-- Выбор роли -->
+            <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Кто вы?</label>
+                <select name="role" id="role-selector" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary); font-size: 0.95rem;" required>
+                    <option value="client">Я покупатель (Старт: 50 000 ₽)</option>
+                    <option value="seller">Я продавец / Издательство</option>
+                </select>
+            </div>
+
+            <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Логин для входа</label>
+                <input type="text" name="username" placeholder="Придумайте уникальный логин" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary); box-sizing: border-box; font-size: 0.95rem;" required>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Email</label>
+                <input type="email" name="email" placeholder="example@mail.com" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary); box-sizing: border-box; font-size: 0.95rem;" required>
+            </div>
+
+            <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Пароль</label>
+                <div style="position: relative; width: 100%;">
+                    <input type="password" id="password-input" name="password" placeholder="Придумайте надежный пароль" style="width: 100%; padding: 12px 45px 12px 12px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary); box-sizing: border-box; font-size: 0.95rem;" required>
+                    <button type="button" id="toggle-password-btn" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0; color: var(--text-muted); display: flex; align-items: center; user-select: none;" title="Показать/скрыть пароль">👁️</button>
+                </div>
+            </div>
+
+            <div id="client-fields-block" style="display: flex; flex-direction: column; gap: 16px; width: 100%;">
+                <div style="display: flex; flex-direction: column; align-items: flex-start; width: 100%;">
+                    <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Ваше Имя</label>
+                    <input type="text" id="client-name-input" name="name" placeholder="Иван" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary); box-sizing: border-box; font-size: 0.95rem;">
+                    <span id="name-error-msg" style="color: #e74c3c; font-size: 0.8rem; margin-top: 5px; font-weight: 600; display: none;">⚠️ Имя должно содержать не менее 2 символов</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-start; width: 100%;">
+                    <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Ваша Фамилия</label>
+                    <input type="text" name="second_name" placeholder="Иванов" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary); box-sizing: border-box; font-size: 0.95rem;">
+                </div>
+            </div>
+
+            <div id="seller-fields-block" style="display: none; flex-direction: column; align-items: flex-start; width: 100%;">
+                <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Название Издательства / Компании</label>
+                <input type="text" name="company_name" placeholder="Например: Издательство Y" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--bg-header); color: var(--text-primary); box-sizing: border-box; font-size: 0.95rem;">
+            </div>
+            
+            <button type="submit" id="submit-reg-btn" class="buy-button" style="margin-top: 10px; padding: 12px 0; font-size: 1rem; background-color: #aae5f7; width: 100%;">
+                Зарегистрироваться
+            </button>
+        </form>
+        
+        <p style="font-size: 0.88rem; color: var(--text-muted); text-align: center; margin-top: 20px; margin-bottom: 0;">
+            Уже есть аккаунт? <a href="/login" style="color: #005bff; text-decoration: none; font-weight: 600;">Войти</a>
+        </p>
+    </div>
+    
+</main>
+
+<script>
+const roleSelector = document.getElementById('role-selector');
+const clientBlock = document.getElementById('client-fields-block');
+const sellerBlock = document.getElementById('seller-fields-block');
+const nameInput = document.getElementById('client-name-input');
+const nameError = document.getElementById('name-error-msg');
+const submitBtn = document.getElementById('submit-reg-btn');
+
+roleSelector.addEventListener('change', function() {
+    if (this.value === 'client') {
+        clientBlock.style.display = 'flex';
+        sellerBlock.style.display = 'none';
+        validateName();
+    } else {
+        clientBlock.style.display = 'none';
+        sellerBlock.style.display = 'flex';
+        nameError.style.display = 'none';
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        submitBtn.style.cursor = 'pointer';
+    }
+});
+
+function validateName() {
+    if (roleSelector.value !== 'client') return;
+    
+    const nameValue = nameInput.value.trim();
+    
+    if (nameValue.length > 0 && nameValue.length < 2) {
+        nameError.style.display = 'block';
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.6';
+        submitBtn.style.cursor = 'not-allowed';
+    } else {
+        nameError.style.display = 'none';
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        submitBtn.style.cursor = 'pointer';
+    }
+}
+
+nameInput.addEventListener('input', validateName);
+
+// 3. ИСПРАВЛЕНО: Функция Показать/Скрыть пароль по кнопке-глазику
+const passwordInput = document.getElementById('password-input');
+const togglePasswordBtn = document.getElementById('toggle-password-btn');
+
+togglePasswordBtn.addEventListener('click', function() {
+    // Переключаем тип инпута
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        this.innerText = '🙈';
+        this.title = 'Скрыть пароль';
+    } else {
+        passwordInput.type = 'password';
+        this.innerText = '👁️';
+        this.title = 'Показать пароль';
+    }
+});
+</script>
+{% endblock %}
