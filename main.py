@@ -93,48 +93,65 @@ async def api_search(search: str | None = None, db: Session = Depends(get_db)):
 
 # - - -
 
-@app.post('/register')
-async def register_user(
-    username: str = Form(...), password: str = Form(...),
-    name: str = Form(...), second_name: str = Form(...),
-    email: str = Form(...), role: str = Form('client'),
-    db: Session = Depends(get_db)
-):
-    existing_user = db.execute(select(User_obj).where(User_obj.username == username)).scalars().first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail='Пользователь с таким логином уже существует')
-        
-    new_user = User_obj(
-        username=username, password=password, role=role,
-        name=name, email=email, second_name=second_name
-    )
-    db.add(new_user)
-    db.commit()
-
-    response = RedirectResponse(url='/', status_code=status.HTTP_303_SEE_OTHER)
-    response.set_cookie(key='user_id', value=str(new_user.id), httponly=True)
-    return response
-
-# - - -
-
-@app.get('/login')
-async def login_page(
-    request: Request, 
-    current_user: User_obj = Depends(get_current_user)
-    ):
-    # Если пользователь уже авторизован, отправляем его на главную
+@app.get('/register')
+async def register_page(request: Request, current_user: User_obj = Depends(get_current_user)):
     if current_user:
         return RedirectResponse(url='/', status_code=status.HTTP_303_SEE_OTHER)
-        
-    # Иначе открываем созданную страницу login.html
-    return templates.TemplateResponse(
-        request=request, 
-        name='login.html', 
-        context={'user': current_user}
+    return templates.TemplateResponse(request=request, name='register.html', context={'user': None})
+
+@app.post('/register')
+async def register_user(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    email: str = Form(...),
+    name: str = Form(None),
+    second_name: str = Form(None),
+    company_name: str = Form(None),
+    role: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    if role == 'admin' or role == 'administrator':
+        return templates.TemplateResponse(
+            request=request, name='register.html',
+            context={'error': 'Вы не можете зарегистрироваться в роли администратора.'}
+        )
+    
+    existing_user = db.execute(select(User_obj).where(User_obj.username == username)).scalars().first()
+    if existing_user:
+        return templates.TemplateResponse(
+            request=request, name='register.html',
+            context={'error': 'Такой пользователь уже зарегистрирован.'}
+        )
+
+    initial_balance = 50000 if role == 'client' else 0
+
+    new_user = User_obj(
+        username=username,
+        password=password,
+        role=role,
+        email=email,
+        name=name if role == 'client' else None,
+        second_name=second_name if role == 'client' else None,
+        company_name=company_name if role == 'seller' else None,
+        balance=initial_balance
     )
 
+    db.add(new_user)
+    db.commit()
+    res = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+    res.set_cookie(key="user_id", value=str(new_user.id), httponly=True)
+    return res
+    
+# --- ВХОД: СТРАНИЦА ФОРМЫ (GET) ---
+@app.get('/login')
+async def login_page(request: Request, current_user: User_obj = Depends(get_current_user)):
+    if current_user:
+        return RedirectResponse(url='/', status_code=status.HTTP_303_SEE_OTHER)
+    return templates.TemplateResponse(request=request, name='login.html', context={'user': current_user})
 
-# - - -
+
+# --- ВХОД: ОБРАБОТКА ФОРМЫ (POST) ---
 @app.post('/login')
 async def login_user(
     request: Request,
@@ -142,14 +159,12 @@ async def login_user(
     password_input: str = Form(...),        
     db: Session = Depends(get_db)
 ):
-    # Ищем пользователя в базе данных
     query = select(User_obj).where(User_obj.username == username_input)
     user = db.execute(query).scalars().first()
     
     if not user or user.password != password_input:
         return templates.TemplateResponse(
-            request=request, 
-            name='login.html', 
+            request=request, name='login.html', 
             context={
                 'user': None, 
                 'error': "Неверный логин или пароль", 
@@ -161,6 +176,8 @@ async def login_user(
     res.set_cookie(key="user_id", value=str(user.id), httponly=True)
     return res
 
+
+# --- ВЫХОД (GET) ---
 @app.get('/logout')
 async def logout_user():
     response = RedirectResponse(url='/', status_code=status.HTTP_303_SEE_OTHER)
@@ -169,13 +186,11 @@ async def logout_user():
 
 
 # --- ПРОФИЛЬ И ДЕТАЛИ ---
-
 @app.get('/profile/{user_id}')
 async def get_profile(user_id: int, request: Request, current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
     if not current_user or current_user.id != user_id:
         return RedirectResponse(url='/')
 
-    # Загружаем историю покупок
     history_query = select(Buy_obj).where(Buy_obj.reader_id == user_id)
     purchases = db.execute(history_query).scalars().all()
 
@@ -197,9 +212,7 @@ async def read_book_preview(book_id: int, request: Request, current_user: User_o
         context={'book': book, 'user': current_user}
     )
 
-
-# --- КОРЗИНА И ИЗБРАННОЕ (ДИНАМИЧЕСКИЕ ЧЕРЕЗ JSON/AJAX) ---
-
+# --- КОРЗИНА И ИЗБРАННОЕ ---
 @app.get('/favorites')
 async def get_favorites_page(
     request: Request, 
@@ -209,11 +222,8 @@ async def get_favorites_page(
     if not current_user:
         return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
         
-    # Загружаем связи избранного для текущего пользователя
     query = select(Favorite_obj).where(Favorite_obj.user_id == current_user.id)
     fav_items = db.execute(query).scalars().all()
-    
-    # Достаем из связей объекты самих продуктов (книг, закладок)
     books = [item.product for item in fav_items if item.product is not None]
 
     return templates.TemplateResponse(
@@ -246,8 +256,6 @@ async def add_cart(book_id: int, current_user: User_obj = Depends(get_current_us
     book = db.get(Product_obj, book_id)
     if not book or not book.is_active or book.stock_quantity <= 0:
         return JSONResponse(status_code=400, content={'status': 'error', 'message': 'Товара нет в наличии!'})
-    
-    # Проверяем, есть ли уже товар в корзине
     existing = db.execute(select(Cart_obj).where(Cart_obj.reader_id == current_user.id, Cart_obj.book_id == book_id)).scalars().first()
     if existing:
         existing.quantity += 1
@@ -290,8 +298,6 @@ async def toggle_favorite(product_id: int, current_user: User_obj = Depends(get_
 
 # --- ОФОРМЛЕНИЕ ЗАКАЗА (ПОКУПКА) ---
 
-# --- ОФОРМЛЕНИЕ ЗАКАЗА (ПОКУПКА) ---
-
 @app.post('/purchase')
 async def buy_func(current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
     if not current_user:
@@ -316,17 +322,14 @@ async def buy_func(current_user: User_obj = Depends(get_current_user), db: Sessi
         # Проверка остатка на складе
         if product.stock_quantity < item.quantity:
             raise HTTPException(status_code=400, detail=f"Товара '{product.title}' нет в нужном количестве!")
-            
-        # Уменьшаем количество на складе
+    
         product.stock_quantity -= item.quantity
-        
-        # Начисляем деньги продавцу
+    
         if product.seller_id:
             seller = db.get(User_obj, product.seller_id)
             if seller:
                 seller.balance += product.price * item.quantity
                 
-        # Создаем запись о покупке (сохраняются ВСЕ товары внутри цикла)
         new_purchase = Buy_obj(
             total_price=product.price * item.quantity,
             reader_id=current_user.id,
@@ -334,12 +337,10 @@ async def buy_func(current_user: User_obj = Depends(get_current_user), db: Sessi
             seller_id=product.seller_id or 1
         )
         db.add(new_purchase)
-        db.delete(item)  # Удаляем элемент из корзины
+        db.delete(item) 
 
-    # Фиксируем изменения в БД один раз после успешной обработки всего цикла
     db.commit()
 
-    # Симуляция уведомлений
     print(f"🔊 СИСТЕМА УВЕДОМЛЕНИЙ:\n"
           f"-> АДМИНУ: Совершена продажа на сумму {total_price} ₽\n"
           f"-> КЛИЕНТУ ({current_user.email}): Заказ оплачен. Списано {total_price} ₽\n"
@@ -353,7 +354,6 @@ def cat_success(request: Request, current_user: User_obj = Depends(get_current_u
     return templates.TemplateResponse(request=request, name='success.html', context={'user': current_user})
 
 # --- ЛИЧНЫЙ КАБИНЕТ ПРОДАВЦА ---
-
 @app.get('/seller/dashboard')
 async def seller_dashboard(request: Request, current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
     if not current_user or current_user.role != 'seller':
@@ -391,14 +391,11 @@ async def seller_product_delete(book_id: int, current_user: User_obj = Depends(g
         raise HTTPException(status_code=403)
     product = db.get(Product_obj, book_id)
     if product and product.seller_id == current_user.id:
-        product.is_active = False  # МЯГКОЕ УДАЛЕНИЕ (Архивация)
-        
+        product.is_active = False
     db.commit()
-    
     return RedirectResponse(url="/seller/dashboard", status_code=status.HTTP_303_SEE_OTHER)
 
 # --- ПАНЕЛЬ АДМИНИСТРАТОРА ---
-
 @app.get('/admin/dashboard')
 async def admin_dashboard(request: Request, current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
     if not current_user or current_user.role != 'admin':

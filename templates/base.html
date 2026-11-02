@@ -22,8 +22,10 @@
                 <div id="live-search-results"></div>
             </div>
             
+            <!-- Правая часть: Управление -->
             <div class="navbar-controls">
                 <button id="theme-toggle" class="theme-btn">🌓</button>
+                
                 {% if user %}
                     <span class="user-greeting">
                         Привет, <strong>{{ user.name or user.username }}</strong> 
@@ -46,7 +48,12 @@
                         <li><a href="/logout" class="nav-link logout-link" style="color: #e74c3c;">Выйти</a></li>
                     </ul>
                 {% else %}
-                    <a href="/login" class="nav-link login-btn" style="font-weight: 700; color: #005bff;">👤 Войти</a>
+                    <!-- ИСПРАВЛЕНО: Добавлены аккуратные и ровные кнопки входа и регистрации для гостей -->
+                    <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                        <a href="/login" class="nav-link login-btn" style="font-weight: 700; color: #005bff;">👤 Войти</a>
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">/</span>
+                        <a href="/register" class="nav-link" style="font-weight: 600; font-size: 0.88rem; color: var(--text-secondary); text-decoration: none;">Регистрация</a>
+                    </div>
                 {% endif %}
             </div>
         </div>
@@ -62,7 +69,6 @@
         const themeToggleBtn = document.getElementById("theme-toggle");
         const currentTheme = localStorage.getItem("theme");
 
-        // При загрузке страницы проверяем сохраненную тему в браузере
         if (currentTheme === "dark") {
             document.body.classList.add("dark-mode");
         }
