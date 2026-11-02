@@ -139,8 +139,6 @@ async def register_user(
 
     db.add(new_user)
     db.commit()
-
-    # 5. УСПЕХ: Авторизуем пользователя (ставим куку) и отправляем на главную
     res = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     res.set_cookie(key="user_id", value=str(new_user.id), httponly=True)
     return res
@@ -188,13 +186,11 @@ async def logout_user():
 
 
 # --- ПРОФИЛЬ И ДЕТАЛИ ---
-
 @app.get('/profile/{user_id}')
 async def get_profile(user_id: int, request: Request, current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
     if not current_user or current_user.id != user_id:
         return RedirectResponse(url='/')
 
-    # Загружаем историю покупок
     history_query = select(Buy_obj).where(Buy_obj.reader_id == user_id)
     purchases = db.execute(history_query).scalars().all()
 
@@ -216,9 +212,7 @@ async def read_book_preview(book_id: int, request: Request, current_user: User_o
         context={'book': book, 'user': current_user}
     )
 
-
 # --- КОРЗИНА И ИЗБРАННОЕ ---
-
 @app.get('/favorites')
 async def get_favorites_page(
     request: Request, 
@@ -228,11 +222,8 @@ async def get_favorites_page(
     if not current_user:
         return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
         
-    # Загружаем связи избранного для текущего пользователя
     query = select(Favorite_obj).where(Favorite_obj.user_id == current_user.id)
     fav_items = db.execute(query).scalars().all()
-    
-    # Достаем из связей объекты самих продуктов (книг, закладок)
     books = [item.product for item in fav_items if item.product is not None]
 
     return templates.TemplateResponse(
@@ -265,8 +256,6 @@ async def add_cart(book_id: int, current_user: User_obj = Depends(get_current_us
     book = db.get(Product_obj, book_id)
     if not book or not book.is_active or book.stock_quantity <= 0:
         return JSONResponse(status_code=400, content={'status': 'error', 'message': 'Товара нет в наличии!'})
-    
-    # Проверяем, есть ли уже товар в корзине
     existing = db.execute(select(Cart_obj).where(Cart_obj.reader_id == current_user.id, Cart_obj.book_id == book_id)).scalars().first()
     if existing:
         existing.quantity += 1
@@ -309,8 +298,6 @@ async def toggle_favorite(product_id: int, current_user: User_obj = Depends(get_
 
 # --- ОФОРМЛЕНИЕ ЗАКАЗА (ПОКУПКА) ---
 
-# --- ОФОРМЛЕНИЕ ЗАКАЗА (ПОКУПКА) ---
-
 @app.post('/purchase')
 async def buy_func(current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
     if not current_user:
@@ -335,17 +322,14 @@ async def buy_func(current_user: User_obj = Depends(get_current_user), db: Sessi
         # Проверка остатка на складе
         if product.stock_quantity < item.quantity:
             raise HTTPException(status_code=400, detail=f"Товара '{product.title}' нет в нужном количестве!")
-            
-        # Уменьшаем количество на складе
+    
         product.stock_quantity -= item.quantity
-        
-        # Начисляем деньги продавцу
+    
         if product.seller_id:
             seller = db.get(User_obj, product.seller_id)
             if seller:
                 seller.balance += product.price * item.quantity
                 
-        # Создаем запись о покупке (сохраняются ВСЕ товары внутри цикла)
         new_purchase = Buy_obj(
             total_price=product.price * item.quantity,
             reader_id=current_user.id,
@@ -353,12 +337,10 @@ async def buy_func(current_user: User_obj = Depends(get_current_user), db: Sessi
             seller_id=product.seller_id or 1
         )
         db.add(new_purchase)
-        db.delete(item)  # Удаляем элемент из корзины
+        db.delete(item) 
 
-    # Фиксируем изменения в БД один раз после успешной обработки всего цикла
     db.commit()
 
-    # Симуляция уведомлений
     print(f"🔊 СИСТЕМА УВЕДОМЛЕНИЙ:\n"
           f"-> АДМИНУ: Совершена продажа на сумму {total_price} ₽\n"
           f"-> КЛИЕНТУ ({current_user.email}): Заказ оплачен. Списано {total_price} ₽\n"
@@ -372,7 +354,6 @@ def cat_success(request: Request, current_user: User_obj = Depends(get_current_u
     return templates.TemplateResponse(request=request, name='success.html', context={'user': current_user})
 
 # --- ЛИЧНЫЙ КАБИНЕТ ПРОДАВЦА ---
-
 @app.get('/seller/dashboard')
 async def seller_dashboard(request: Request, current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
     if not current_user or current_user.role != 'seller':
@@ -410,14 +391,11 @@ async def seller_product_delete(book_id: int, current_user: User_obj = Depends(g
         raise HTTPException(status_code=403)
     product = db.get(Product_obj, book_id)
     if product and product.seller_id == current_user.id:
-        product.is_active = False  # МЯГКОЕ УДАЛЕНИЕ (Архивация)
-        
+        product.is_active = False
     db.commit()
-    
     return RedirectResponse(url="/seller/dashboard", status_code=status.HTTP_303_SEE_OTHER)
 
 # --- ПАНЕЛЬ АДМИНИСТРАТОРА ---
-
 @app.get('/admin/dashboard')
 async def admin_dashboard(request: Request, current_user: User_obj = Depends(get_current_user), db: Session = Depends(get_db)):
     if not current_user or current_user.role != 'admin':
